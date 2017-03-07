@@ -1,0 +1,57 @@
+version: 0.0.{build}
+
+branches:
+  only:
+    - master
+
+environment:
+  global:
+    CRATE_NAME: wan
+    TOOLCHAIN: stable
+  matrix:
+    - TARGET: i686-pc-windows-msvc
+    - TARGET: x86_64-pc-windows-msvc
+    - TARGET: i686-pc-windows-gnu
+    - TARGET: x86_64-pc-windows-gnu
+
+install:
+  - ps: >-
+      switch ($env:TARGET)
+      {
+        'x86_64-pc-windows-gnu' { $env:PATH += ";C:\msys64\mingw64\bin" }
+        'i686-pc-windows-gnu'   { $env:PATH += ";C:\msys64\mingw32\bin" }
+      }
+  - curl -sSf -o rustup-init.exe https://win.rustup.rs/
+  - rustup-init.exe -y --no-modify-path --default-toolchain=%TOOLCHAIN% --default-host=%TARGET%
+  - set PATH=%USERPROFILE%\.cargo\bin;%PATH%
+  - rustc -V
+  - cargo -V
+
+build_script:
+  - cargo build
+
+test_script:
+  - cargo test
+
+after_test:
+  - ps: $env:PKGNAME = "$($env:CRATE_NAME)-$(./ci/get-tagorbranch.ps1)-$($env:TARGET)"
+  - ps: .\ci\deploy.ps1 -pkgname $env:PKGNAME
+
+artifacts:
+  - path: $(PKGNAME)
+
+deploy:
+  appveyor_repo_tag: true
+  provider: GitHub
+  draft: false
+  prerelease: false
+  force_update: true
+  auth_token:
+    secure: AQ93ZOJ8qrTF/NrlTyvbRz4p/G+of7Dtzzw67u6ScBNbrN8v1ga7rG1jLqlo2Uoy
+  on:
+    branch: master
+    appveyor_repo_tag: true
+
+cache:
+  - C:\Users\appveyor\.cargo\registry
+  - target

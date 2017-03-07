@@ -1,0 +1,12 @@
+[package]
+name = "wan"
+version = "0.1.0"
+authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
+
+[dependencies]
+curl = "*"
+env_logger = "*"
+log = "*"
+serde = "*"
+serde_json = "*"
+serde_derive = "*"
