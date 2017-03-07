@@ -11,6 +11,7 @@ extern crate error_chain;
 mod wandbox;
 
 use std::io::{self, Read, BufRead};
+use std::ops::Deref;
 use std::sync;
 use curl::easy;
 use wandbox::{CompileRequest, CompileResponse};
@@ -42,30 +43,26 @@ pub fn compile_request(compiler: &str,
     runtime_option_raw: options.join("\n"),
   };
 
-  let mut easy = easy::Easy::new();
-
-  let mut headers = easy::List::new();
-  headers.append("Content-Type: application/json")?;
-  easy.http_headers(headers)?;
-
-  easy.url("http://melpon.org/wandbox/api/compile.json")?;
-  easy.post(true)?;
-
-  let request_str = serde_json::ser::to_string(&request)?;
-  easy.post_fields_copy(request_str.as_bytes())?;
-
-  let chunk = sync::Arc::new(sync::Mutex::new(String::new()));
+  let chunk = sync::Arc::new(sync::RwLock::new(Vec::new()));
   {
+    let mut headers = easy::List::new();
+    headers.append("Content-Type: application/json")?;
+
+    let mut easy = easy::Easy::new();
+    easy.http_headers(headers)?;
+    easy.url("http://melpon.org/wandbox/api/compile.json")?;
+    easy.post(true)?;
+    easy.post_fields_copy(serde_json::to_string(&request)?.as_bytes())?;
+
     let c = chunk.clone();
     easy.write_function(move |data: &[u8]| {
-        use std::borrow::Borrow;
-        c.lock().unwrap().push_str(String::from_utf8_lossy(data).borrow());
+        c.write().unwrap().extend(data);
         Ok(data.len())
       })?;
+
+    easy.perform()?;
   }
 
-  easy.perform()?;
-
-  let response = serde_json::de::from_str(chunk.lock().unwrap().as_str())?;
+  let response = serde_json::from_slice(chunk.read().unwrap().deref())?;
   Ok(response)
 }
