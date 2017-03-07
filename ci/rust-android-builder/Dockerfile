@@ -19,5 +19,6 @@ RUN curl -qL http://dl.google.com/android/repository/android-ndk-r14-linux-x86_6
         --install-dir /usr/local/android-ndk-toolchain && \
     rm -rf /tmp/android-ndk.zip /usr/local/android-ndk-r14/
 
-ENV NDK_TOOLCHAIN=/usr/local/android-ndk-toolchain
+ENV PKG_CONFIG_ALLOW_CROSS=1 \
+    NDK_TOOLCHAIN=/usr/local/android-ndk-toolchain
 ENV PATH=$PATH:$NDK_TOOLCHAIN/bin

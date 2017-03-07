@@ -9,3 +9,4 @@ if ($name -eq $null) {
   $name = "UNKNOWN"
 }
 Write-Output $name
+exit 0

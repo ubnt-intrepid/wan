@@ -1,8 +1,11 @@
 # wan
+[![Build Status](https://travis-ci.org/ubnt-intrepid/wan.svg?branch=master)](https://travis-ci.org/ubnt-intrepid/wan)
+[![Build status](https://ci.appveyor.com/api/projects/status/gn6e5m7plo81fjjl/branch/master?svg=true)](https://ci.appveyor.com/project/ubnt-intrepid/wan/branch/master)
 
 わん ∪･ω･∪
 
-`wan` is a port of mattn/wandbox-run, written in Rust.
+`wan` is, a command-line client of Wandbox, written in Rust.
+This project is inspired by [mattn/wandbox-run](https://github.com/mattn/wandbox-run).
 
 ## Installation
 
