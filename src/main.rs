@@ -1,19 +1,29 @@
 extern crate curl;
+extern crate env_logger;
 extern crate serde_json;
+#[macro_use]
+extern crate log;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
-extern crate log;
-extern crate env_logger;
+extern crate error_chain;
 
-use std::io::{self, Read, Write};
-use std::io::{BufRead, BufReader};
-use std::fs::File;
+use std::io::{self, Read, Write, BufRead};
+use std::sync;
+use curl::easy;
+
+error_chain! {
+  foreign_links {
+    Io(::std::io::Error);
+    Curl(::curl::Error);
+    SerdeJson(::serde_json::Error);
+  }
+}
 
 #[derive(Debug, Serialize)]
 struct Request {
-  code: String,
   compiler: String,
+  code: String,
   runtime_option_raw: String,
 }
 
@@ -25,43 +35,30 @@ struct Response {
   status: i32,
 }
 
-fn make_request() -> Request {
-  let command = std::env::args().next().unwrap();
-  let args: Vec<_> = std::env::args().skip(1).collect();
-  if args.len() < 2 {
-    let _ = writeln!(&mut io::stderr(),
-                     "Usage: {} [compiler] [file] [arguments...]",
-                     command);
-    std::process::exit(1);
-  }
-
+fn make_request(compiler: &str, filename: &str, options: &[String]) -> Result<Request> {
   let mut code = String::new();
-  if args[1] != "-" {
-    let mut f = BufReader::new(File::open(&args[1]).unwrap());
-    let mut dummy = String::new();
-    f.read_line(&mut dummy).unwrap();
-    f.read_to_string(&mut code).unwrap();
+  if filename != "-" {
+    let mut f = io::BufReader::new(std::fs::File::open(filename)?);
+    f.read_line(&mut String::new())?;
+    f.read_to_string(&mut code)?;
   } else {
-    let _ = std::io::stdin().read_to_string(&mut code).unwrap();
+    io::stdin().read_to_string(&mut code)?;
   }
 
-  let compiler = args[0].clone();
-  let runtime_option_raw = args[2..].join("\n");
-
-  Request {
+  Ok(Request {
+    compiler: compiler.to_owned(),
     code: code,
-    compiler: compiler,
-    runtime_option_raw: runtime_option_raw,
-  }
+    runtime_option_raw: options.join("\n"),
+  })
 }
 
-fn get_response(request: Request) -> Response {
-  let request_str = serde_json::ser::to_string(&request).unwrap();
+fn get_response(request: Request) -> Result<Response> {
+  let request_str = serde_json::ser::to_string(&request)?;
 
-  let mut headers = curl::easy::List::new();
-  headers.append("Content-Type: application/json").unwrap();
+  let mut headers = easy::List::new();
+  headers.append("Content-Type: application/json")?;
 
-  let chunk = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+  let chunk = sync::Arc::new(sync::Mutex::new(String::new()));
   let write_callback = {
     let c = chunk.clone();
     move |data: &[u8]| {
@@ -71,27 +68,33 @@ fn get_response(request: Request) -> Response {
     }
   };
 
-  let mut easy = curl::easy::Easy::new();
-  easy.http_headers(headers).unwrap();
-  easy.url("http://melpon.org/wandbox/api/compile.json").unwrap();
-  easy.post(true).unwrap();
-  easy.post_fields_copy(request_str.as_bytes()).unwrap();
-  easy.write_function(write_callback).unwrap();
-  easy.perform().unwrap();
-  let _ = easy.response_code().unwrap();
+  let mut easy = easy::Easy::new();
+  easy.http_headers(headers)?;
+  easy.url("http://melpon.org/wandbox/api/compile.json")?;
+  easy.post(true)?;
+  easy.post_fields_copy(request_str.as_bytes())?;
+  easy.write_function(write_callback)?;
+  easy.perform()?;
 
-  let response = serde_json::de::from_str(chunk.lock().unwrap().as_str()).unwrap();
-
-  response
+  let response = serde_json::de::from_str(chunk.lock().unwrap().as_str())?;
+  Ok(response)
 }
 
 fn main() {
   env_logger::init().unwrap();
 
-  let request = make_request();
+  let args: Vec<_> = std::env::args().skip(1).collect();
+  if args.len() < 2 {
+    let _ = writeln!(&mut io::stderr(),
+                     "Usage: {} [compiler] [file] [arguments...]",
+                     std::env::args().next().unwrap());
+    std::process::exit(1);
+  }
+
+  let request = make_request(&args[0], &args[1], &args[2..]).unwrap();
   trace!("request = {:?}", request);
 
-  let response = get_response(request);
+  let response = get_response(request).unwrap();
   trace!("response = {:?}", response);
 
   if let Some(message) = response.program_message {
