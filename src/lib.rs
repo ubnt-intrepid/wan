@@ -25,7 +25,7 @@ error_chain! {
 
 pub fn compile_request(compiler: &str,
                        filename: &str,
-                       options: &[String])
+                       options: &[&str])
                        -> Result<CompileResponse> {
   let mut code = String::new();
   if filename != "-" {

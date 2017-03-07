@@ -1,4 +1,4 @@
-#!/home/vagrant/.cargo/bin/wan clang-head
+#!/home/vagrant/.cargo/bin/wan-run clang-head
 
 #include <iostream>
 #include <vector>
