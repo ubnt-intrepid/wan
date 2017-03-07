@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
 
 [dependencies]
-curl = { git = "https://github.com/SpaceManiac/curl-rust.git", branch = "windows-pkg-config" }
+curl = { git = "https://github.com/ubnt-intrepid/curl-rust.git", branch = "pkg-config" }
 env_logger = "*"
 log = "*"
 serde = "*"
