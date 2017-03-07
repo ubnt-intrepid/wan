@@ -20,5 +20,6 @@ invoke-pacman -Syuu
 invoke-pacman -Syuu
 invoke-pacman -S make `
                  "$($target)-toolchain" `
+                 "$($target)-curl" `
                  "$($target)-diffutils" `
                  "$($target)-perl"
