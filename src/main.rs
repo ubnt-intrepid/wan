@@ -1,5 +1,6 @@
 extern crate curl;
 extern crate env_logger;
+extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate log;
@@ -8,9 +9,12 @@ extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
 
+mod wandbox;
+
 use std::io::{self, Read, Write, BufRead};
 use std::sync;
 use curl::easy;
+use wandbox::{CompileRequest, CompileResponse};
 
 error_chain! {
   foreign_links {
@@ -20,22 +24,7 @@ error_chain! {
   }
 }
 
-#[derive(Debug, Serialize)]
-struct Request {
-  compiler: String,
-  code: String,
-  runtime_option_raw: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct Response {
-  program_message: Option<String>,
-  program_output: Option<String>,
-  compiler_message: Option<String>,
-  status: i32,
-}
-
-fn make_request(compiler: &str, filename: &str, options: &[String]) -> Result<Request> {
+fn make_request(compiler: &str, filename: &str, options: &[String]) -> Result<CompileRequest> {
   let mut code = String::new();
   if filename != "-" {
     let mut f = io::BufReader::new(std::fs::File::open(filename)?);
@@ -45,15 +34,19 @@ fn make_request(compiler: &str, filename: &str, options: &[String]) -> Result<Re
     io::stdin().read_to_string(&mut code)?;
   }
 
-  Ok(Request {
+  Ok(CompileRequest {
     compiler: compiler.to_owned(),
     code: code,
     runtime_option_raw: options.join("\n"),
   })
 }
 
-fn get_response(request: Request) -> Result<Response> {
+fn post<Req, Res>(request: Req, url: &str) -> Result<Res>
+  where Req: serde::Serialize,
+        Res: serde::Deserialize
+{
   let request_str = serde_json::ser::to_string(&request)?;
+  trace!("request_str = '{}'", request_str);
 
   let mut headers = easy::List::new();
   headers.append("Content-Type: application/json")?;
@@ -70,7 +63,7 @@ fn get_response(request: Request) -> Result<Response> {
 
   let mut easy = easy::Easy::new();
   easy.http_headers(headers)?;
-  easy.url("http://melpon.org/wandbox/api/compile.json")?;
+  easy.url(url)?;
   easy.post(true)?;
   easy.post_fields_copy(request_str.as_bytes())?;
   easy.write_function(write_callback)?;
@@ -94,7 +87,8 @@ fn main() {
   let request = make_request(&args[0], &args[1], &args[2..]).unwrap();
   trace!("request = {:?}", request);
 
-  let response = get_response(request).unwrap();
+  let response: CompileResponse = post(&request, "http://melpon.org/wandbox/api/compile.json")
+    .unwrap();
   trace!("response = {:?}", response);
 
   if let Some(message) = response.program_message {
