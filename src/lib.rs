@@ -10,7 +10,6 @@ extern crate error_chain;
 
 mod wandbox;
 
-use std::io::{self, Read, BufRead};
 use std::ops::Deref;
 use std::sync;
 use curl::easy;
@@ -24,19 +23,7 @@ error_chain! {
   }
 }
 
-pub fn compile_request(compiler: &str,
-                       filename: &str,
-                       options: &[&str])
-                       -> Result<CompileResponse> {
-  let mut code = String::new();
-  if filename != "-" {
-    let mut f = io::BufReader::new(std::fs::File::open(filename)?);
-    f.read_line(&mut String::new())?;
-    f.read_to_string(&mut code)?;
-  } else {
-    io::stdin().read_to_string(&mut code)?;
-  }
-
+pub fn compile_request(code: String, compiler: &str, options: &[&str]) -> Result<CompileResponse> {
   let request = CompileRequest {
     compiler: compiler.to_owned(),
     code: code,
