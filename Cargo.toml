@@ -1,6 +1,6 @@
 [package]
 name = "wan"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
 
 [dependencies]

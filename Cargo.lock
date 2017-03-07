@@ -1,6 +1,6 @@
 [root]
 name = "wan"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "clap 2.20.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "curl 0.4.6 (git+https://github.com/ubnt-intrepid/curl-rust.git?branch=pkg-config)",
