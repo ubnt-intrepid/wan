@@ -7,17 +7,34 @@ pub struct Compile {
   code: String,
   compiler: String,
 
+  #[serde(skip_serializing_if = "String::is_empty")]
+  stdin: String,
+
+  #[serde(rename = "compiler-option-raw")]
+  #[serde(skip_serializing_if = "String::is_empty")]
+  compiler_option_raw: String,
+
   #[serde(rename = "runtime-option-raw")]
   #[serde(skip_serializing_if = "String::is_empty")]
   runtime_option_raw: String,
 }
+// TODO:
+// codes
+// options
+// save
 
 #[derive(Debug, Deserialize)]
 pub struct CompileResult {
   status: i32,
-  program_message: Option<String>,
-  program_output: Option<String>,
+  signal: Option<String>,
+  compiler_output: Option<String>,
+  compiler_error: Option<String>,
   compiler_message: Option<String>,
+  program_output: Option<String>,
+  program_error: Option<String>,
+  program_message: Option<String>,
+  permlink: Option<String>,
+  url: Option<String>,
 }
 
 impl Compile {
@@ -25,12 +42,24 @@ impl Compile {
     Compile {
       code: code,
       compiler: String::new(),
+      stdin: String::new(),
+      compiler_option_raw: String::new(),
       runtime_option_raw: String::new(),
     }
   }
 
   pub fn compiler(mut self, compiler: &str) -> Self {
     self.compiler = compiler.to_owned();
+    self
+  }
+
+  pub fn stdin(mut self, stdin: String) -> Self {
+    self.stdin = stdin;
+    self
+  }
+
+  pub fn compiler_option(mut self, options: &[&str]) -> Self {
+    self.compiler_option_raw = options.join("\n");
     self
   }
 
