@@ -8,9 +8,12 @@ extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
 
-mod wandbox;
+mod compile;
+mod list;
+mod util;
 
-pub use wandbox::{Compile, CompileResult};
+pub use compile::{Compile, CompileResult};
+pub use list::get_compiler_info;
 
 error_chain! {
   foreign_links {

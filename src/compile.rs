@@ -1,6 +1,6 @@
 use curl::easy::{Easy, List};
 use serde_json;
-use super::Result;
+use Result;
 
 #[derive(Debug, Serialize)]
 pub struct Compile {
