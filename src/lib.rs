@@ -10,7 +10,7 @@ extern crate error_chain;
 
 mod wandbox;
 
-pub use wandbox::{CompileRequest, CompileResponse};
+pub use wandbox::{Compile, CompileResult};
 
 error_chain! {
   foreign_links {

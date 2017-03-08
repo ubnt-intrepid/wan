@@ -5,7 +5,7 @@ use serde_json;
 use super::Result;
 
 #[derive(Debug, Serialize)]
-pub struct CompileRequest {
+pub struct Compile {
   code: String,
   compiler: String,
 
@@ -15,33 +15,33 @@ pub struct CompileRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CompileResponse {
-  pub status: i32,
-  pub program_message: Option<String>,
-  pub program_output: Option<String>,
-  pub compiler_message: Option<String>,
+pub struct CompileResult {
+  status: i32,
+  program_message: Option<String>,
+  program_output: Option<String>,
+  compiler_message: Option<String>,
 }
 
-impl CompileRequest {
-  pub fn new(code: String) -> CompileRequest {
-    CompileRequest {
+impl Compile {
+  pub fn new(code: String) -> Self {
+    Compile {
       code: code,
       compiler: String::new(),
       runtime_option_raw: String::new(),
     }
   }
 
-  pub fn compiler(mut self, compiler: &str) -> CompileRequest {
+  pub fn compiler(mut self, compiler: &str) -> Self {
     self.compiler = compiler.to_owned();
     self
   }
 
-  pub fn runtime_option(mut self, options: &[&str]) -> CompileRequest {
+  pub fn runtime_option(mut self, options: &[&str]) -> Self {
     self.runtime_option_raw = options.join("\n");
     self
   }
 
-  pub fn compile_request(self) -> Result<CompileResponse> {
+  pub fn request(self) -> Result<CompileResult> {
     let chunk = Arc::new(RwLock::new(Vec::new()));
 
     let mut headers = List::new();
@@ -61,7 +61,21 @@ impl CompileRequest {
 
     easy.perform()?;
 
-    let response = serde_json::from_slice(chunk.read().unwrap().deref())?;
-    Ok(response)
+    let result = serde_json::from_slice(chunk.read().unwrap().deref())?;
+    Ok(result)
+  }
+}
+
+impl CompileResult {
+  pub fn status(&self) -> i32 {
+    self.status
+  }
+
+  pub fn report(&self) {
+    if let Some(ref message) = self.program_message {
+      println!("{}", message);
+    } else {
+      println!("{}", self.compiler_message.as_ref().unwrap());
+    }
   }
 }

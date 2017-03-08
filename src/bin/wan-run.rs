@@ -16,17 +16,12 @@ fn run(compiler: &str, filename: &str, arguments: Vec<&str>) -> wan::Result<i32>
     stdin().read_to_string(&mut code)?;
   }
 
-  let result = wan::CompileRequest::new(code).compiler(compiler)
+  let result = wan::Compile::new(code).compiler(compiler)
     .runtime_option(&arguments)
-    .compile_request()?;
+    .request()?;
 
-  if let Some(message) = result.program_message {
-    println!("{}", message);
-  } else {
-    println!("{}", result.compiler_message.unwrap());
-  }
-
-  Ok(result.status)
+  result.report();
+  Ok(result.status())
 }
 
 fn main() {
