@@ -1,15 +1,21 @@
 [package]
 name = "wan"
+description = "Commandline interface of Wandbox"
 version = "0.0.0"
 authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
 
+[features]
+default = ["curl"]
+http-hyper = ["hyper"]
+
 [dependencies]
-curl = { git = "https://github.com/ubnt-intrepid/curl-rust.git", branch = "pkg-config" }
-env_logger = "*"
-log = "*"
-serde = "*"
-serde_json = "*"
-serde_derive = "*"
-error-chain = "*"
-clap = "*"
-shlex = "*"
+curl = { version = "^0.4.6", optional = true }
+hyper = { version = "^0.10.5", optional = true }
+env_logger = "^0.4.2"
+log = "^0.3.7"
+serde = "^0.9.11"
+serde_derive = "^0.9.11"
+serde_json = "^0.9.9"
+error-chain = "^0.10.0"
+clap = "^2.20.5"
+shlex = "0.1.1"

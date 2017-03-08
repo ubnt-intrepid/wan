@@ -1,7 +1,6 @@
 use Result;
-use curl::easy::{Easy, List};
-use serde_json;
 use util::Either;
+use http;
 
 #[derive(Debug, Deserialize)]
 pub struct CompilerInfo {
@@ -60,55 +59,42 @@ pub struct CompilerOption {
 }
 
 pub fn get_compiler_info() -> Result<Vec<CompilerInfo>> {
-  let mut headers = List::new();
-  headers.append("Content-Type: application/json")?;
+  http::get_json("http://melpon.org/wandbox/api/list.json", &[])
+}
 
-  let mut easy = Easy::new();
-  easy.http_headers(headers)?;
-  easy.url("http://melpon.org/wandbox/api/list.json")?;
-  easy.get(true)?;
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use serde_json;
 
-  let mut buf = Vec::new();
-  {
-    let mut transfer = easy.transfer();
-    transfer.write_function(|data: &[u8]| {
-        buf.extend_from_slice(data);
-        Ok(data.len())
-      })?;
-    transfer.perform()?;
+  #[test]
+  fn test_compiler_info() {
+    let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/list.json"));
+    let dst: Vec<CompilerInfo> = serde_json::from_str(src).unwrap();
+    println!("{:?}", dst);
   }
 
-  serde_json::de::from_slice(&buf).map_err(Into::into)
-}
-
-#[test]
-fn test_compiler_info() {
-  let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/list.json"));
-  let dst: Vec<CompilerInfo> = serde_json::from_str(src).unwrap();
-  println!("{:?}", dst);
-}
-
-#[test]
-fn test_compiler_switch() {
-  let src = r#"{
+  #[test]
+  fn test_compiler_switch() {
+    let src = r#"{
     "default":true,
     "name":"sprout",
     "display-flags":"-I/usr/local/sprout",
     "display-name":"Sprout"
   }"#;
-  let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src)
-    .unwrap();
+    let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src)
+      .unwrap();
 
-  let dst = dst.into_left().expect("invalid type");
-  assert_eq!(dst.default, true);
-  assert_eq!(dst.name, "sprout");
-  assert_eq!(dst.display_name, "Sprout");
-  assert_eq!(dst.display_flags, "-I/usr/local/sprout");
-}
+    let dst = dst.into_left().expect("invalid type");
+    assert_eq!(dst.default, true);
+    assert_eq!(dst.name, "sprout");
+    assert_eq!(dst.display_name, "Sprout");
+    assert_eq!(dst.display_flags, "-I/usr/local/sprout");
+  }
 
-#[test]
-fn test_compiler_switch_multi() {
-  let src = r#"{
+  #[test]
+  fn test_compiler_switch_multi() {
+    let src = r#"{
     "default":"boost-1.55",
     "options":[{
       "name":"boost-nothing",
@@ -120,20 +106,21 @@ fn test_compiler_switch_multi() {
       "display-name":"Boost 1.47.0"
     }]
   }"#;
-  let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src)
-    .unwrap();
-  let dst = dst.into_right().unwrap();
+    let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src)
+      .unwrap();
+    let dst = dst.into_right().unwrap();
 
-  assert_eq!(dst.default, "boost-1.55");
-  assert_eq!(dst.options,
-             [CompilerOption {
-                name: "boost-nothing".to_owned(),
-                display_name: "Don't Use Boost".to_owned(),
-                display_flags: "".to_owned(),
-              },
-              CompilerOption {
-                name: "boost-1.47".to_owned(),
-                display_name: "Boost 1.47.0".to_owned(),
-                display_flags: "-I/usr/local/boost-1.47.0/include".to_owned(),
-              }]);
+    assert_eq!(dst.default, "boost-1.55");
+    assert_eq!(dst.options,
+               [CompilerOption {
+                  name: "boost-nothing".to_owned(),
+                  display_name: "Don't Use Boost".to_owned(),
+                  display_flags: "".to_owned(),
+                },
+                CompilerOption {
+                  name: "boost-1.47".to_owned(),
+                  display_name: "Boost 1.47.0".to_owned(),
+                  display_flags: "-I/usr/local/boost-1.47.0/include".to_owned(),
+                }]);
+  }
 }
