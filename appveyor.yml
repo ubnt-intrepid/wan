@@ -39,14 +39,14 @@ install:
   - cargo -V
 
 build_script:
-  - cargo build
+  - cargo build --features %FEATURES%
 
 test_script:
-  - cargo test
+  - cargo test --features %FEATURES%
 
 after_test:
   - ps: $env:PKGNAME = "$($env:CRATE_NAME)-$(./ci/get-tagorbranch.ps1)-$($env:TARGET)"
-  - ps: .\ci\deploy.ps1 -pkgname $env:PKGNAME
+  - ps: .\ci\deploy.ps1 -pkgname $env:PKGNAME -features $env:FEATURES
 
 artifacts:
   - path: $(PKGNAME)
