@@ -77,3 +77,39 @@ impl CompileResult {
     }
   }
 }
+
+#[derive(Debug, Deserialize)]
+pub struct CompilerInfo {
+  name: String,
+  version: String,
+  language: String,
+  #[serde(rename = "display-name")]
+  display_name: String,
+  #[serde(rename = "compiler-option-raw")]
+  compiler_option_raw: bool,
+  #[serde(rename = "runtime-option-raw")]
+  runtime_option_raw: bool,
+  #[serde(rename = "display-compile-command")]
+  display_compile_command: String,
+  switches: Vec<CompilerSwitch>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CompilerSwitch {
+  default: bool,
+  name: String,
+  #[serde(rename = "display-name")]
+  display_name: String,
+  #[serde(rename = "display-flags")]
+  display_flags: String,
+  options: Vec<CompilerOption>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CompilerOption {
+  name: String,
+  #[serde(rename = "display-name")]
+  display_name: String,
+  #[serde(rename = "display-flags")]
+  display_flags: String,
+}
