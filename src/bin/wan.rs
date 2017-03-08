@@ -9,8 +9,10 @@ use std::io::{self, Read, Write, BufRead, BufReader};
 
 fn run(compiler: &str,
        filename: &str,
+       options: &str,
        compiler_args: Vec<String>,
-       runtime_args: Vec<String>)
+       runtime_args: Vec<String>,
+       permlink: bool)
        -> wan::Result<i32> {
   let mut code = String::new();
   if filename != "-" {
@@ -22,8 +24,10 @@ fn run(compiler: &str,
   }
 
   let result = wan::Compile::new(code).compiler(compiler.to_owned())
+    .options(options.to_owned())
     .compiler_option(compiler_args)
     .runtime_option(runtime_args)
+    .save(permlink)
     .request()?;
 
   result.dump()?;
@@ -38,10 +42,12 @@ fn main() {
     .subcommand(clap::SubCommand::with_name("run")
       .about("Post a code to wandbox and get a result")
       .args_from_usage(r#"
-        <compiler>                     'compiler name'
-        <filename>                     'target filename'
-        --compile-args=[compiler-args] 'arguments for compiler'
-        --runtime-args=[runtime-args]  'arguments for compiled binary or interpreter'
+        <compiler>                      'Compiler name'
+        <filename>                      'Target filename'
+        --options=[options]             'Used options (separated by comma)'
+        --compile-args=[compiler-args]  'Arguments for compiler'
+        --runtime-args=[runtime-args]   'Arguments for compiled binary or interpreter'
+        --permlink                      'Generate permlink'
       "#))
     .get_matches();
 
@@ -54,12 +60,19 @@ fn main() {
     ("run", Some(m)) => {
       let compiler = m.value_of("compiler").unwrap();
       let filename = m.value_of("filename").unwrap();
+      let options = m.value_of("options").unwrap_or_default();
       let compiler_args =
         m.value_of("compiler-args").and_then(|s| shlex::split(s)).unwrap_or_default();
       let runtime_args =
         m.value_of("runtime-args").and_then(|s| shlex::split(s)).unwrap_or_default();
+      let permlink = m.is_present("permlink");
 
-      match run(compiler, filename, compiler_args, runtime_args) {
+      match run(compiler,
+                filename,
+                options,
+                compiler_args,
+                runtime_args,
+                permlink) {
         Ok(code) => std::process::exit(code),
         Err(err) => writeln!(&mut io::stderr(), "failed with: {:?}", err).unwrap(),
       }
