@@ -1,82 +1,7 @@
+use Result;
 use curl::easy::{Easy, List};
 use serde_json;
-use super::Result;
-
-#[derive(Debug, Serialize)]
-pub struct Compile {
-  code: String,
-  compiler: String,
-
-  #[serde(rename = "runtime-option-raw")]
-  #[serde(skip_serializing_if = "String::is_empty")]
-  runtime_option_raw: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CompileResult {
-  status: i32,
-  program_message: Option<String>,
-  program_output: Option<String>,
-  compiler_message: Option<String>,
-}
-
-impl Compile {
-  pub fn new(code: String) -> Self {
-    Compile {
-      code: code,
-      compiler: String::new(),
-      runtime_option_raw: String::new(),
-    }
-  }
-
-  pub fn compiler(mut self, compiler: &str) -> Self {
-    self.compiler = compiler.to_owned();
-    self
-  }
-
-  pub fn runtime_option(mut self, options: &[&str]) -> Self {
-    self.runtime_option_raw = options.join("\n");
-    self
-  }
-
-  pub fn request(self) -> Result<CompileResult> {
-    let mut headers = List::new();
-    headers.append("Content-Type: application/json")?;
-
-    let mut easy = Easy::new();
-    easy.http_headers(headers)?;
-    easy.url("http://melpon.org/wandbox/api/compile.json")?;
-    easy.post(true)?;
-    easy.post_fields_copy(&serde_json::to_vec(&self)?)?;
-
-    let mut buf = Vec::new();
-    {
-      let mut transfer = easy.transfer();
-      transfer.write_function(|data: &[u8]| {
-          buf.extend_from_slice(data);
-          Ok(data.len())
-        })?;
-      transfer.perform()?;
-    }
-
-    let result = serde_json::from_slice(&buf)?;
-    Ok(result)
-  }
-}
-
-impl CompileResult {
-  pub fn status(&self) -> i32 {
-    self.status
-  }
-
-  pub fn report(&self) {
-    if let Some(ref message) = self.program_message {
-      println!("{}", message);
-    } else {
-      println!("{}", self.compiler_message.as_ref().unwrap());
-    }
-  }
-}
+use util::Either;
 
 #[derive(Debug, Deserialize)]
 pub struct CompilerInfo {
@@ -97,6 +22,16 @@ pub struct CompilerInfo {
   display_compile_command: String,
 
   switches: Vec<Either<CompilerSwitch, CompilerSwitchMultiOptions>>,
+}
+
+impl CompilerInfo {
+  pub fn name(&self) -> &str {
+    &self.name
+  }
+
+  pub fn display_compile_command(&self) -> &str {
+    &self.display_compile_command
+  }
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -124,27 +59,26 @@ pub struct CompilerOption {
   display_flags: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum Either<L, R> {
-  Left(L),
-  Right(R),
-}
+pub fn get_compiler_info() -> Result<Vec<CompilerInfo>> {
+  let mut headers = List::new();
+  headers.append("Content-Type: application/json")?;
 
-impl<L, R> Either<L, R> {
-  pub fn into_left(self) -> Option<L> {
-    match self {
-      Either::Left(l) => Some(l),
-      Either::Right(_) => None,
-    }
+  let mut easy = Easy::new();
+  easy.http_headers(headers)?;
+  easy.url("http://melpon.org/wandbox/api/list.json")?;
+  easy.get(true)?;
+
+  let mut buf = Vec::new();
+  {
+    let mut transfer = easy.transfer();
+    transfer.write_function(|data: &[u8]| {
+        buf.extend_from_slice(data);
+        Ok(data.len())
+      })?;
+    transfer.perform()?;
   }
 
-  pub fn into_right(self) -> Option<R> {
-    match self {
-      Either::Left(_) => None,
-      Either::Right(r) => Some(r),
-    }
-  }
+  serde_json::de::from_slice(&buf).map_err(Into::into)
 }
 
 #[test]
