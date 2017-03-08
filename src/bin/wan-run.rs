@@ -3,7 +3,31 @@ extern crate clap;
 extern crate env_logger;
 extern crate wan;
 
-use std::io::{Read, BufRead};
+use std::fs::File;
+use std::io::{stdin, stderr, Read, Write, BufRead, BufReader};
+
+fn run(compiler: &str, filename: &str, arguments: Vec<&str>) -> wan::Result<i32> {
+  let mut code = String::new();
+  if filename != "-" {
+    let mut f = BufReader::new(File::open(filename)?);
+    f.read_line(&mut String::new())?;
+    f.read_to_string(&mut code)?;
+  } else {
+    stdin().read_to_string(&mut code)?;
+  }
+
+  let result = wan::CompileRequest::new(code).compiler(compiler)
+    .runtime_option(&arguments)
+    .compile_request()?;
+
+  if let Some(message) = result.program_message {
+    println!("{}", message);
+  } else {
+    println!("{}", result.compiler_message.unwrap());
+  }
+
+  Ok(result.status)
+}
 
 fn main() {
   env_logger::init().unwrap();
@@ -13,25 +37,13 @@ fn main() {
     .arg_from_usage("<filename>       'target filename'")
     .arg_from_usage("[<arguments>...] 'supplemental arguments to pass compiled binary'")
     .get_matches();
+
   let compiler = m.value_of("compiler").unwrap();
   let filename = m.value_of("filename").unwrap();
   let arguments: Vec<_> = m.values_of("arguments").map(|v| v.collect()).unwrap_or_default();
 
-  let mut code = String::new();
-  if filename != "-" {
-    let mut f = std::io::BufReader::new(std::fs::File::open(filename).unwrap());
-    f.read_line(&mut String::new()).unwrap();
-    f.read_to_string(&mut code).unwrap();
-  } else {
-    std::io::stdin().read_to_string(&mut code).unwrap();
+  match run(compiler, filename, arguments) {
+    Ok(code) => std::process::exit(code),
+    Err(err) => writeln!(&mut stderr(), "failed with: {:?}", err).unwrap(),
   }
-
-  let response = wan::compile_request(code, compiler, &arguments).unwrap();
-  if let Some(message) = response.program_message {
-    println!("{}", message);
-  } else {
-    println!("{}", response.compiler_message.unwrap());
-  }
-
-  std::process::exit(response.status);
 }
