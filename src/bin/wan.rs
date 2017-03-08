@@ -2,25 +2,31 @@
 extern crate clap;
 extern crate env_logger;
 extern crate wan;
+extern crate shlex;
 
 use std::fs::File;
-use std::io::{stdin, stderr, Read, Write, BufRead, BufReader};
+use std::io::{self, Read, Write, BufRead, BufReader};
 
-fn run(compiler: &str, filename: &str, arguments: Vec<&str>) -> wan::Result<i32> {
+fn run(compiler: &str,
+       filename: &str,
+       compiler_args: Vec<String>,
+       runtime_args: Vec<String>)
+       -> wan::Result<i32> {
   let mut code = String::new();
   if filename != "-" {
     let mut f = BufReader::new(File::open(filename)?);
     f.read_line(&mut String::new())?;
     f.read_to_string(&mut code)?;
   } else {
-    stdin().read_to_string(&mut code)?;
+    io::stdin().read_to_string(&mut code)?;
   }
 
-  let result = wan::Compile::new(code).compiler(compiler)
-    .runtime_option(&arguments)
+  let result = wan::Compile::new(code).compiler(compiler.to_owned())
+    .compiler_option(compiler_args)
+    .runtime_option(runtime_args)
     .request()?;
 
-  result.report();
+  result.dump()?;
   Ok(result.status())
 }
 
@@ -31,9 +37,12 @@ fn main() {
     .subcommand(clap::SubCommand::with_name("list").about("List compiler information"))
     .subcommand(clap::SubCommand::with_name("run")
       .about("Post a code to wandbox and get a result")
-      .arg_from_usage("<compiler>       'compiler name'")
-      .arg_from_usage("<filename>       'target filename'")
-      .arg_from_usage("[<arguments>...] 'supplemental arguments to pass compiled binary'"))
+      .args_from_usage(r#"
+        <compiler>                     'compiler name'
+        <filename>                     'target filename'
+        --compile-args=[compiler-args] 'arguments for compiler'
+        --runtime-args=[runtime-args]  'arguments for compiled binary or interpreter'
+      "#))
     .get_matches();
 
   match m.subcommand() {
@@ -45,11 +54,14 @@ fn main() {
     ("run", Some(m)) => {
       let compiler = m.value_of("compiler").unwrap();
       let filename = m.value_of("filename").unwrap();
-      let arguments: Vec<_> = m.values_of("arguments").map(|v| v.collect()).unwrap_or_default();
+      let compiler_args =
+        m.value_of("compiler-args").and_then(|s| shlex::split(s)).unwrap_or_default();
+      let runtime_args =
+        m.value_of("runtime-args").and_then(|s| shlex::split(s)).unwrap_or_default();
 
-      match run(compiler, filename, arguments) {
+      match run(compiler, filename, compiler_args, runtime_args) {
         Ok(code) => std::process::exit(code),
-        Err(err) => writeln!(&mut stderr(), "failed with: {:?}", err).unwrap(),
+        Err(err) => writeln!(&mut io::stderr(), "failed with: {:?}", err).unwrap(),
       }
     }
     _ => unreachable!(),

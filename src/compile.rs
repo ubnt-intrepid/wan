@@ -1,11 +1,19 @@
 use curl::easy::{Easy, List};
 use serde_json;
 use Result;
+use std::io::Write;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct Compile {
   code: String,
   compiler: String,
+  save: bool,
+
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  codes: Vec<CompileCode>,
+
+  #[serde(skip_serializing_if = "String::is_empty")]
+  options: String,
 
   #[serde(skip_serializing_if = "String::is_empty")]
   stdin: String,
@@ -18,12 +26,14 @@ pub struct Compile {
   #[serde(skip_serializing_if = "String::is_empty")]
   runtime_option_raw: String,
 }
-// TODO:
-// codes
-// options
-// save
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Serialize)]
+pub struct CompileCode {
+  file: String,
+  code: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CompileResult {
   status: i32,
   signal: Option<String>,
@@ -39,32 +49,68 @@ pub struct CompileResult {
 
 impl Compile {
   pub fn new(code: String) -> Self {
-    Compile {
-      code: code,
-      compiler: String::new(),
-      stdin: String::new(),
-      compiler_option_raw: String::new(),
-      runtime_option_raw: String::new(),
-    }
+    let mut ret = Compile::default();
+    ret.code = code;
+    ret
   }
 
-  pub fn compiler(mut self, compiler: &str) -> Self {
-    self.compiler = compiler.to_owned();
+  pub fn compiler(mut self, compiler: String) -> Self {
+    self.compiler = compiler.into();
+    self
+  }
+
+  pub fn options(mut self, options: String) -> Self {
+    self.options = options.into();
+    self
+  }
+
+  pub fn code(mut self, code: CompileCode) -> Self {
+    self.codes.push(code);
+    self
+  }
+
+  pub fn codes<I>(mut self, codes: I) -> Self
+    where I: IntoIterator<Item = CompileCode>
+  {
+    self.codes.extend(codes);
     self
   }
 
   pub fn stdin(mut self, stdin: String) -> Self {
-    self.stdin = stdin;
+    self.stdin = stdin.into();
     self
   }
 
-  pub fn compiler_option(mut self, options: &[&str]) -> Self {
-    self.compiler_option_raw = options.join("\n");
+  pub fn compiler_option<I, S>(mut self, options: I) -> Self
+    where I: IntoIterator<Item = S>,
+          S: AsRef<str>
+  {
+    self.compiler_option_raw = options.into_iter().fold(String::new(), |mut acc, s| {
+      if !acc.is_empty() {
+        acc.push('\n');
+      }
+      acc.push_str(s.as_ref());
+      acc
+    });
     self
   }
 
-  pub fn runtime_option(mut self, options: &[&str]) -> Self {
-    self.runtime_option_raw = options.join("\n");
+  pub fn runtime_option<I, S>(mut self, options: I) -> Self
+    where I: IntoIterator<Item = S>,
+          S: AsRef<str>
+  {
+    self.runtime_option_raw = options.into_iter().fold(String::new(), |mut acc, s| {
+      if !acc.is_empty() {
+        acc.push('\n');
+      }
+      acc.push_str(s.as_ref());
+      acc
+    });
+    self
+  }
+
+  pub fn save(mut self, save: bool) -> Self {
+    self.save = save;
     self
   }
 
@@ -104,5 +150,10 @@ impl CompileResult {
     } else {
       println!("{}", self.compiler_message.as_ref().unwrap());
     }
+  }
+
+  pub fn dump(&self) -> Result<()> {
+    ::std::io::stdout().write_all(serde_json::to_string_pretty(self)?.as_bytes())?;
+    Ok(())
   }
 }
