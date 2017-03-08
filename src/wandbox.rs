@@ -1,5 +1,3 @@
-use std::sync::{Arc, RwLock};
-use std::ops::Deref;
 use curl::easy::{Easy, List};
 use serde_json;
 use super::Result;
@@ -42,8 +40,6 @@ impl Compile {
   }
 
   pub fn request(self) -> Result<CompileResult> {
-    let chunk = Arc::new(RwLock::new(Vec::new()));
-
     let mut headers = List::new();
     headers.append("Content-Type: application/json")?;
 
@@ -53,15 +49,17 @@ impl Compile {
     easy.post(true)?;
     easy.post_fields_copy(&serde_json::to_vec(&self)?)?;
 
-    let c = chunk.clone();
-    easy.write_function(move |data: &[u8]| {
-        c.write().unwrap().extend(data);
-        Ok(data.len())
-      })?;
+    let mut buf = Vec::new();
+    {
+      let mut transfer = easy.transfer();
+      transfer.write_function(|data: &[u8]| {
+          buf.extend_from_slice(data);
+          Ok(data.len())
+        })?;
+      transfer.perform()?;
+    }
 
-    easy.perform()?;
-
-    let result = serde_json::from_slice(chunk.read().unwrap().deref())?;
+    let result = serde_json::from_slice(&buf)?;
     Ok(result)
   }
 }
