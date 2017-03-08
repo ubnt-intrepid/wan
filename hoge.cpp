@@ -1,4 +1,4 @@
-#!/home/vagrant/.cargo/bin/wan-run clang-head
+#!/usr/bin/env wan-script
 
 #include <iostream>
 #include <vector>

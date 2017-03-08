@@ -5,6 +5,7 @@
 わん ∪･ω･∪
 
 `wan` is, a command-line client of Wandbox, written in Rust.
+
 This project is inspired by [mattn/wandbox-run](https://github.com/mattn/wandbox-run).
 
 ## Installation
@@ -13,19 +14,37 @@ This project is inspired by [mattn/wandbox-run](https://github.com/mattn/wandbox
 $ cargo install --git https://github.com/ubnt-intrepid/wan.git
 ```
 
+## Commands
+* `wan list`
+* `wan run <compiler> <filename> [<runtime-options>...]`
+* `wan-script`
+
 ## Usage
+* List compiler informations
+  ```sh
+  $ wan list
+  ```
 
-```cpp
-#!/home/user/wan clang-head
+* Post a code to compile & run at Wandbox
+  ```sh
+  wan run clang-head hoge.cpp a b c
+  ```
 
-#include <iostream>
+* Use wandbox as shebang
+  ```cpp
+  #!/usr/bin/env wan-script
 
-int main() {
-  std::cout << "Hoyaa!" << std::endl;
-}
-```
+  #include <iostream>
 
-```sh
-$ chmod +x hoge.cpp
-$ ./hoge.cpp
-```
+  int main() {
+    std::cout << "Hoyaa!" << std::endl;
+  }
+  ```
+
+  ```sh
+  $ chmod +x hoge.cpp
+  $ WAN_COMPILER=clang-head ./hoge.cpp
+  ```
+
+## License
+MIT (See [LICENSE](LICENSE) for details)
