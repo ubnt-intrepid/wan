@@ -32,7 +32,7 @@ impl ListApp {
       wan::util::dump_to_json(&info_list)?;
     } else {
       for info in info_list {
-        println!("{}, \"{}\"", info.name(), info.display_compile_command());
+        println!("{}", info);
       }
     }
 

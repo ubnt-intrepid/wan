@@ -1,130 +1,140 @@
+use serde;
 #[cfg(test)]
 use serde_json;
 use Result;
 use util::Either;
 use http;
 
-#[derive(Debug)]
-pub enum Language {
-  BashScript,
-  C,
-  Csharp,
-  Cplusplus,
-  CoffeeScript,
-  CPP,
-  D,
-  Elixir,
-  Erlang,
-  Groovy,
-  Haskell,
-  Java,
-  JavaScript,
-  LazyK,
-  Lisp,
-  Lua,
-  Pascal,
-  Perl,
-  PHP,
-  Python,
-  Rill,
-  Ruby,
-  Rust,
-  Scala,
-  SQL,
-  Swift,
-  VimScript,
+macro_rules! enum_str {
+  ($name:ident { $($variant:ident : $value:expr, )* }) => {
+    #[derive(Debug, Serialize)]
+    pub enum $name {
+      $($variant,)*
+    }
+
+    impl ::std::fmt::Display for $name {
+      fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+          $(
+            $name :: $variant => write!(f, $value),
+          )*
+        }
+      }
+    }
+
+    impl ::std::str::FromStr for $name {
+      type Err = String;
+      fn from_str(s: &str) -> ::std::result::Result<$name, Self::Err> {
+        match s {
+          $(
+            $value => Ok($name :: $variant),
+          )*
+          s => Err(format!("No such value: {}", s)),
+        }
+      }
+    }
+
+    impl ::serde::Deserialize for $name {
+      fn deserialize<D>(d: D) -> ::std::result::Result<$name, D::Error>
+        where D: ::serde::Deserializer {
+        struct Visitor;
+        impl ::serde::de::Visitor for Visitor {
+          type Value = $name;
+          fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter.write_str(concat!("enum ", stringify!($name)))
+          }
+          fn visit_str<E>(self, s: &str) -> ::std::result::Result<Self::Value, E>
+            where E: ::serde::de::Error {
+            ::std::str::FromStr::from_str(s).map_err(|e| E::custom(e))
+          }
+        }
+        d.deserialize(Visitor)
+      }
+    }
+  } 
 }
 
-impl ::std::str::FromStr for Language {
-  type Err = String;
-  fn from_str(s: &str) -> ::std::result::Result<Language, Self::Err> {
-    match s {
-      "Bash script" => Ok(Language::BashScript),
-      "C" => Ok(Language::C),
-      "C#" => Ok(Language::Csharp),
-      "C++" => Ok(Language::Cplusplus),
-      "CoffeeScript" => Ok(Language::CoffeeScript),
-      "CPP" => Ok(Language::CPP),
-      "D" => Ok(Language::D),
-      "Elixir" => Ok(Language::Elixir),
-      "Erlang" => Ok(Language::Erlang),
-      "Groovy" => Ok(Language::Groovy),
-      "Haskell" => Ok(Language::Haskell),
-      "Java" => Ok(Language::Java),
-      "JavaScript" => Ok(Language::JavaScript),
-      "Lazy K" => Ok(Language::LazyK),
-      "Lisp" => Ok(Language::Lisp),
-      "Lua" => Ok(Language::Lua),
-      "Pascal" => Ok(Language::Pascal),
-      "Perl" => Ok(Language::Perl),
-      "PHP" => Ok(Language::PHP),
-      "Python" => Ok(Language::Python),
-      "Rill" => Ok(Language::Rill),
-      "Ruby" => Ok(Language::Ruby),
-      "Rust" => Ok(Language::Rust),
-      "Scala" => Ok(Language::Scala),
-      "SQL" => Ok(Language::SQL),
-      "Swift" => Ok(Language::Swift),
-      "Vim script" => Ok(Language::VimScript),
-      s => Err(format!("No such language: {}", s)),
-    }
-  }
-}
+enum_str!(Language {
+  BashScript: "Bash script",
+  C: "C",
+  Csharp: "C#",
+  Cplusplus: "C++",
+  CoffeeScript: "CoffeeScript",
+  CPP: "CPP",
+  D: "D",
+  Elixir: "Elixir",
+  Erlang: "Erlang",
+  Groovy: "Groovy",
+  Haskell: "Haskell",
+  Java: "Java",
+  JavaScript: "JavaScript",
+  LazyK: "Lazy K",
+  Lisp: "Lisp",
+  Lua: "Lua",
+  Pascal: "Pascal",
+  Perl: "Perl",
+  PHP: "PHP",
+  Python: "Python",
+  Rill: "Rill",
+  Ruby: "Ruby",
+  Rust: "Rust",
+  Scala: "Scala",
+  SQL: "SQL",
+  Swift: "Swift",
+  VimScript: "Vim script",
+});
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CompilerInfo {
-  name: String,
-  version: String,
-  language: String,
+  pub name: String,
+  pub version: String,
+  pub language: Language,
 
   #[serde(rename = "display-name")]
-  display_name: String,
+  pub display_name: String,
 
   #[serde(rename = "compiler-option-raw")]
-  compiler_option_raw: bool,
+  pub compiler_option_raw: bool,
 
   #[serde(rename = "runtime-option-raw")]
-  runtime_option_raw: bool,
+  pub runtime_option_raw: bool,
 
   #[serde(rename = "display-compile-command")]
-  display_compile_command: String,
+  pub display_compile_command: String,
 
-  switches: Vec<Either<CompilerSwitch, CompilerSwitchMultiOptions>>,
+  pub switches: Vec<Either<CompilerSwitch, CompilerSwitchMultiOptions>>,
 }
 
-impl CompilerInfo {
-  pub fn name(&self) -> &str {
-    &self.name
-  }
-
-  pub fn display_compile_command(&self) -> &str {
-    &self.display_compile_command
+impl ::std::fmt::Display for CompilerInfo {
+  fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+    write!(f, "{} {}", self.name, self.language)
   }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CompilerSwitch {
-  default: bool,
-  name: String,
+  pub default: bool,
+  pub name: String,
   #[serde(rename = "display-name")]
-  display_name: String,
+  pub display_name: String,
   #[serde(rename = "display-flags")]
-  display_flags: String,
+  pub display_flags: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CompilerSwitchMultiOptions {
-  default: String,
-  options: Vec<CompilerOption>,
+  pub default: String,
+  pub options: Vec<CompilerOption>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CompilerOption {
-  name: String,
+  pub name: String,
   #[serde(rename = "display-name")]
-  display_name: String,
+  pub display_name: String,
   #[serde(rename = "display-flags")]
-  display_flags: String,
+  pub display_flags: String,
 }
 
 pub fn get_compiler_info() -> Result<Vec<CompilerInfo>> {
