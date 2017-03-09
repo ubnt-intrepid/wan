@@ -24,7 +24,8 @@ trait MakeApp<'a, 'b: 'a> {
 }
 
 trait Run {
-  fn run(self) -> wan::Result<i32>;
+  type Err;
+  fn run(self) -> Result<i32, Self::Err>;
 }
 
 
@@ -50,7 +51,9 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp {
 }
 
 impl Run for ListApp {
-  fn run(self) -> wan::Result<i32> {
+  type Err = wan::Error;
+
+  fn run(self) -> Result<i32, Self::Err> {
     let info_list = wan::list::get_compiler_info()?;
 
     if self.dump {
@@ -106,7 +109,9 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp {
 }
 
 impl Run for RunApp {
-  fn run(self) -> wan::Result<i32> {
+  type Err = wan::Error;
+
+  fn run(self) -> Result<i32, Self::Err> {
     let mut code = String::new();
     if self.filename != "-" {
       File::open(self.filename)?
@@ -155,7 +160,9 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp {
 }
 
 impl Run for PermlinkApp {
-  fn run(self) -> wan::Result<i32> {
+  type Err = wan::Error;
+
+  fn run(self) -> Result<i32, Self::Err> {
     let result = wan::permlink::get_from_permlink(&self.link)?;
     wan::util::dump_to_json(&result)?;
     Ok(0)
@@ -190,7 +197,9 @@ impl<'a> From<clap::ArgMatches<'a>> for App {
 }
 
 impl Run for App {
-  fn run(self) -> wan::Result<i32> {
+  type Err = wan::Error;
+
+  fn run(self) -> Result<i32, Self::Err> {
     match self {
       App::List(a) => a.run(),
       App::Run(a) => a.run(),
