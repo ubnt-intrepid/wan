@@ -119,17 +119,25 @@ impl Run for RunApp {
     } else {
       io::stdin().read_to_string(&mut code)?;
     }
-    let compiler_args = self.compiler_args.and_then(|s| shlex::split(&s)).unwrap_or_default();
-    let runtime_args = self.runtime_args.and_then(|s| shlex::split(&s)).unwrap_or_default();
+
+    let mut parameter = wan::compile::Parameter::new(code, self.compiler).save(self.permlink);
+
+    if let Some(options) = self.options {
+      parameter = parameter.options(options);
+    }
+
+    let compiler_args = self.compiler_args.and_then(|s| shlex::split(&s));
+    if let Some(args) = compiler_args {
+      parameter = parameter.compiler_option(args);
+    }
+
+    let runtime_args = self.runtime_args.and_then(|s| shlex::split(&s));
+    if let Some(args) = runtime_args {
+      parameter = parameter.runtime_option(args);
+    }
+
     let codes: Option<Vec<_>> = self.files
       .map(|v| v.into_iter().map(|ref s| wan::compile::Code::new(s)).collect());
-
-    let mut parameter = wan::compile::Parameter::new(code, self.compiler)
-      .options(self.options.unwrap_or_default())
-      .compiler_option(compiler_args)
-      .runtime_option(runtime_args)
-      .save(self.permlink);
-
     if let Some(codes) = codes {
       parameter = parameter.codes(codes);
     }
