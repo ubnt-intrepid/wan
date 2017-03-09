@@ -10,25 +10,19 @@ environment:
     TOOLCHAIN: stable
   matrix:
     - TARGET: i686-pc-windows-msvc
-      FEATURES: default
     - TARGET: x86_64-pc-windows-msvc
-      FEATURES: default
     - TARGET: i686-pc-windows-gnu
-      FEATURES: http-hyper
     - TARGET: x86_64-pc-windows-gnu
-      FEATURES: http-hyper
 install:
   - ps: >-
       switch ($env:TARGET)
       {
         'x86_64-pc-windows-gnu' {
           $env:MSYSTEM = "MINGW64"
-          # .\ci\setup_msys2.ps1 -msystem $env:MSYSTEM -root "C:\msys64"
           $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:PATH
         }
         'i686-pc-windows-gnu' {
           $env:MSYSTEM = "MINGW32"
-          # .\ci\setup_msys2.ps1 -msystem $env:MSYSTEM -root "C:\msys64"
           $env:PATH = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:PATH
         }
       }
@@ -39,14 +33,14 @@ install:
   - cargo -V
 
 build_script:
-  - cargo build --features %FEATURES%
+  - cargo build
 
 test_script:
-  - cargo test --features %FEATURES%
+  - cargo test
 
 after_test:
   - ps: $env:PKGNAME = "$($env:CRATE_NAME)-$(./ci/get-tagorbranch.ps1)-$($env:TARGET)"
-  - ps: .\ci\deploy.ps1 -pkgname $env:PKGNAME -features $env:FEATURES
+  - ps: .\ci\deploy.ps1 -pkgname $env:PKGNAME
 
 artifacts:
   - path: $(PKGNAME)

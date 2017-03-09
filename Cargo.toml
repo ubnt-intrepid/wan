@@ -4,13 +4,8 @@ description = "Commandline interface of Wandbox"
 version = "0.0.0"
 authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
 
-[features]
-default = ["curl"]
-http-hyper = ["hyper"]
-
 [dependencies]
-curl = { version = "^0.4.6", optional = true }
-hyper = { version = "^0.10.5", optional = true }
+hyper = "^0.10.5"
 env_logger = "^0.4.2"
 log = "^0.3.7"
 serde = "^0.9.11"

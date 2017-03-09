@@ -1,11 +1,9 @@
 param(
   [parameter(mandatory)]
-  [string]$pkgname,
-
-  [string]$features
+  [string]$pkgname
 )
 
 Remove-Item -Recurse -Force ".\$($pkgname)" -ErrorAction SilentlyContinue
-cargo install --features "$($features)" --root ".\$($pkgname)"
+cargo install --root ".\$($pkgname)"
 
 7z a "$($pkgname).zip" ".\$($pkgname)\"
