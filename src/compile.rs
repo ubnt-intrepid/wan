@@ -1,5 +1,6 @@
 use http;
 use util;
+use std::path::Path;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Parameter {
@@ -35,6 +36,22 @@ pub struct Parameter {
 pub struct Code {
   file: String,
   code: String,
+}
+
+impl Code {
+  pub fn new<P: AsRef<Path> + Copy>(path: P) -> Code {
+    let file = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
+
+    let mut f = ::std::fs::File::open(path).unwrap();
+    use std::io::Read;
+    let mut code = String::new();
+    f.read_to_string(&mut code).unwrap();
+
+    Code {
+      file: file,
+      code: code,
+    }
+  }
 }
 
 impl Parameter {
