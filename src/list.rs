@@ -51,7 +51,7 @@ macro_rules! enum_str {
         d.deserialize(Visitor)
       }
     }
-  } 
+  }
 }
 
 enum_str!(Language {

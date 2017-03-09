@@ -5,7 +5,7 @@ extern crate wan;
 extern crate shlex;
 
 use std::fs::File;
-use std::io::{self, Read, Write, BufRead, BufReader};
+use std::io::{self, Read, Write};
 use clap::AppSettings;
 
 
@@ -79,9 +79,8 @@ impl<'a> RunApp<'a> {
   fn run(self) -> wan::Result<i32> {
     let mut code = String::new();
     if self.filename != "-" {
-      let mut f = BufReader::new(File::open(self.filename)?);
-      f.read_line(&mut String::new())?;
-      f.read_to_string(&mut code)?;
+      File::open(self.filename)?
+        .read_to_string(&mut code)?;
     } else {
       io::stdin().read_to_string(&mut code)?;
     }

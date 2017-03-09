@@ -5,20 +5,29 @@ use util;
 pub struct Parameter {
   pub code: String,
   pub compiler: String,
+
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub stdin: Option<String>,
+
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub options: Option<String>,
 
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub codes: Option<Vec<Code>>,
 
   #[serde(rename = "compiler-option-raw")]
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub compiler_option_raw: Option<String>,
 
   #[serde(rename = "runtime-option-raw")]
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub runtime_option_raw: Option<String>,
 
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub save: Option<bool>,
 
   #[serde(rename = "created-at")]
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub created_at: Option<String>,
 }
 
