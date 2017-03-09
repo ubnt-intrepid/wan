@@ -14,9 +14,6 @@ fn run(filename: &str) -> wan::Result<i32> {
   f.read_line(&mut String::new())?;
   f.read_to_string(&mut code)?;
 
-  let mut stdin = String::new();
-  io::stdin().read_to_string(&mut stdin)?;
-
   let compiler = env::var("WAN_COMPILER").unwrap_or("gcc-head".to_owned());
 
   let options = env::var("WAN_OPTIONS").ok().unwrap_or_default();
@@ -35,7 +32,6 @@ fn run(filename: &str) -> wan::Result<i32> {
     .options(options)
     .compiler_option(compiler_options)
     .runtime_option(runtime_options)
-    .stdin(stdin)
     .request()?;
 
   result.report();

@@ -20,12 +20,10 @@ install:
       {
         'x86_64-pc-windows-gnu' {
           $env:MSYSTEM = "MINGW64"
-          .\ci\setup_msys2.ps1 -msystem $env:MSYSTEM -root "C:\msys64"
           $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:PATH
         }
         'i686-pc-windows-gnu' {
           $env:MSYSTEM = "MINGW32"
-          .\ci\setup_msys2.ps1 -msystem $env:MSYSTEM -root "C:\msys64"
           $env:PATH = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:PATH
         }
       }

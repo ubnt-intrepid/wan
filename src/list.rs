@@ -1,7 +1,8 @@
-use Result;
-use curl::easy::{Easy, List};
+#[cfg(test)]
 use serde_json;
+use Result;
 use util::Either;
+use http;
 
 #[derive(Debug, Deserialize)]
 pub struct CompilerInfo {
@@ -60,25 +61,7 @@ pub struct CompilerOption {
 }
 
 pub fn get_compiler_info() -> Result<Vec<CompilerInfo>> {
-  let mut headers = List::new();
-  headers.append("Content-Type: application/json")?;
-
-  let mut easy = Easy::new();
-  easy.http_headers(headers)?;
-  easy.url("http://melpon.org/wandbox/api/list.json")?;
-  easy.get(true)?;
-
-  let mut buf = Vec::new();
-  {
-    let mut transfer = easy.transfer();
-    transfer.write_function(|data: &[u8]| {
-        buf.extend_from_slice(data);
-        Ok(data.len())
-      })?;
-    transfer.perform()?;
-  }
-
-  serde_json::de::from_slice(&buf).map_err(Into::into)
+  http::get_json("http://melpon.org/wandbox/api/list.json", &[])
 }
 
 #[test]
