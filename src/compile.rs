@@ -8,8 +8,7 @@ pub struct Parameter {
   pub stdin: Option<String>,
   pub options: Option<String>,
 
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub codes: Vec<Code>,
+  pub codes: Option<Vec<Code>>,
 
   #[serde(rename = "compiler-option-raw")]
   pub compiler_option_raw: Option<String>,
@@ -43,14 +42,20 @@ impl Parameter {
   }
 
   pub fn code(mut self, code: Code) -> Self {
-    self.codes.push(code);
+    if self.codes.is_none() {
+      self.codes = Some(Vec::new());
+    }
+    self.codes.as_mut().unwrap().push(code);
     self
   }
 
   pub fn codes<I>(mut self, codes: I) -> Self
     where I: IntoIterator<Item = Code>
   {
-    self.codes.extend(codes);
+    if self.codes.is_none() {
+      self.codes = Some(Vec::new());
+    }
+    self.codes.as_mut().unwrap().extend(codes);
     self
   }
 
