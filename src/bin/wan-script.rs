@@ -28,8 +28,7 @@ fn run(filename: &str) -> wan::Result<i32> {
     .and_then(|ref s| shlex::split(s))
     .unwrap_or_default();
 
-  let result = wan::Compile::new(code).compiler(compiler)
-    .options(options)
+  let result = wan::compile::Parameter::new(code, compiler).options(options)
     .compiler_option(compiler_options)
     .runtime_option(runtime_options)
     .request()?;

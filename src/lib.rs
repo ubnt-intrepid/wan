@@ -8,13 +8,11 @@ extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
 
-mod compile;
-mod list;
-mod util;
-mod http;
-
-pub use compile::{Compile, CompileResult};
-pub use list::get_compiler_info;
+pub mod compile;
+pub mod list;
+pub mod http;
+pub mod util;
+pub mod permlink;
 
 error_chain! {
   foreign_links {

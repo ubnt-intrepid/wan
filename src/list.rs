@@ -4,7 +4,74 @@ use Result;
 use util::Either;
 use http;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
+pub enum Language {
+  BashScript,
+  C,
+  Csharp,
+  Cplusplus,
+  CoffeeScript,
+  CPP,
+  D,
+  Elixir,
+  Erlang,
+  Groovy,
+  Haskell,
+  Java,
+  JavaScript,
+  LazyK,
+  Lisp,
+  Lua,
+  Pascal,
+  Perl,
+  PHP,
+  Python,
+  Rill,
+  Ruby,
+  Rust,
+  Scala,
+  SQL,
+  Swift,
+  VimScript,
+}
+
+impl ::std::str::FromStr for Language {
+  type Err = String;
+  fn from_str(s: &str) -> ::std::result::Result<Language, Self::Err> {
+    match s {
+      "Bash script" => Ok(Language::BashScript),
+      "C" => Ok(Language::C),
+      "C#" => Ok(Language::Csharp),
+      "C++" => Ok(Language::Cplusplus),
+      "CoffeeScript" => Ok(Language::CoffeeScript),
+      "CPP" => Ok(Language::CPP),
+      "D" => Ok(Language::D),
+      "Elixir" => Ok(Language::Elixir),
+      "Erlang" => Ok(Language::Erlang),
+      "Groovy" => Ok(Language::Groovy),
+      "Haskell" => Ok(Language::Haskell),
+      "Java" => Ok(Language::Java),
+      "JavaScript" => Ok(Language::JavaScript),
+      "Lazy K" => Ok(Language::LazyK),
+      "Lisp" => Ok(Language::Lisp),
+      "Lua" => Ok(Language::Lua),
+      "Pascal" => Ok(Language::Pascal),
+      "Perl" => Ok(Language::Perl),
+      "PHP" => Ok(Language::PHP),
+      "Python" => Ok(Language::Python),
+      "Rill" => Ok(Language::Rill),
+      "Ruby" => Ok(Language::Ruby),
+      "Rust" => Ok(Language::Rust),
+      "Scala" => Ok(Language::Scala),
+      "SQL" => Ok(Language::SQL),
+      "Swift" => Ok(Language::Swift),
+      "Vim script" => Ok(Language::VimScript),
+      s => Err(format!("No such language: {}", s)),
+    }
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CompilerInfo {
   name: String,
   version: String,
@@ -35,7 +102,7 @@ impl CompilerInfo {
   }
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CompilerSwitch {
   default: bool,
   name: String,
@@ -45,13 +112,13 @@ pub struct CompilerSwitch {
   display_flags: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CompilerSwitchMultiOptions {
   default: String,
   options: Vec<CompilerOption>,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CompilerOption {
   name: String,
   #[serde(rename = "display-name")]

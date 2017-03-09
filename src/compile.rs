@@ -1,83 +1,61 @@
-use std::io::Write;
-use serde_json;
-use Result;
 use http;
+use util;
 
-#[derive(Debug, Default, Serialize)]
-pub struct Compile {
-  code: String,
-  compiler: String,
-  save: bool,
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Parameter {
+  pub code: String,
+  pub compiler: String,
+  pub stdin: Option<String>,
+  pub options: Option<String>,
 
   #[serde(skip_serializing_if = "Vec::is_empty")]
-  codes: Vec<CompileCode>,
-
-  #[serde(skip_serializing_if = "String::is_empty")]
-  options: String,
-
-  #[serde(skip_serializing_if = "String::is_empty")]
-  stdin: String,
+  pub codes: Vec<Code>,
 
   #[serde(rename = "compiler-option-raw")]
-  #[serde(skip_serializing_if = "String::is_empty")]
-  compiler_option_raw: String,
+  pub compiler_option_raw: Option<String>,
 
   #[serde(rename = "runtime-option-raw")]
-  #[serde(skip_serializing_if = "String::is_empty")]
-  runtime_option_raw: String,
+  pub runtime_option_raw: Option<String>,
+
+  pub save: Option<bool>,
+
+  #[serde(rename = "created-at")]
+  pub created_at: Option<String>,
 }
 
-#[derive(Debug, Default, Serialize)]
-pub struct CompileCode {
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Code {
   file: String,
   code: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CompileResult {
-  status: i32,
-  signal: Option<String>,
-  compiler_output: Option<String>,
-  compiler_error: Option<String>,
-  compiler_message: Option<String>,
-  program_output: Option<String>,
-  program_error: Option<String>,
-  program_message: Option<String>,
-  permlink: Option<String>,
-  url: Option<String>,
-}
-
-impl Compile {
-  pub fn new(code: String) -> Self {
-    let mut ret = Compile::default();
-    ret.code = code;
+impl Parameter {
+  pub fn new<S1: Into<String>, S2: Into<String>>(code: S1, compiler: S2) -> Self {
+    let mut ret = Self::default();
+    ret.code = code.into();
+    ret.compiler = compiler.into();
     ret
   }
 
-  pub fn compiler(mut self, compiler: String) -> Self {
-    self.compiler = compiler.into();
+  pub fn options<S: Into<String>>(mut self, options: S) -> Self {
+    self.options = Some(options.into());
     self
   }
 
-  pub fn options(mut self, options: String) -> Self {
-    self.options = options.into();
-    self
-  }
-
-  pub fn code(mut self, code: CompileCode) -> Self {
+  pub fn code(mut self, code: Code) -> Self {
     self.codes.push(code);
     self
   }
 
   pub fn codes<I>(mut self, codes: I) -> Self
-    where I: IntoIterator<Item = CompileCode>
+    where I: IntoIterator<Item = Code>
   {
     self.codes.extend(codes);
     self
   }
 
-  pub fn stdin(mut self, stdin: String) -> Self {
-    self.stdin = stdin.into();
+  pub fn stdin<S: Into<String>>(mut self, stdin: S) -> Self {
+    self.stdin = Some(stdin.into());
     self
   }
 
@@ -85,13 +63,7 @@ impl Compile {
     where I: IntoIterator<Item = S>,
           S: AsRef<str>
   {
-    self.compiler_option_raw = options.into_iter().fold(String::new(), |mut acc, s| {
-      if !acc.is_empty() {
-        acc.push('\n');
-      }
-      acc.push_str(s.as_ref());
-      acc
-    });
+    self.compiler_option_raw = Some(util::str_join(options, "\n"));
     self
   }
 
@@ -99,27 +71,36 @@ impl Compile {
     where I: IntoIterator<Item = S>,
           S: AsRef<str>
   {
-    self.runtime_option_raw = options.into_iter().fold(String::new(), |mut acc, s| {
-      if !acc.is_empty() {
-        acc.push('\n');
-      }
-      acc.push_str(s.as_ref());
-      acc
-    });
+    self.runtime_option_raw = Some(util::str_join(options, "\n"));
     self
   }
 
   pub fn save(mut self, save: bool) -> Self {
-    self.save = save;
+    self.save = Some(save);
     self
   }
 
-  pub fn request(self) -> Result<CompileResult> {
+  pub fn request(self) -> ::Result<Result> {
     http::post("http://melpon.org/wandbox/api/compile.json", self)
   }
 }
 
-impl CompileResult {
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Result {
+  pub status: i32,
+  pub signal: Option<String>,
+  pub compiler_output: Option<String>,
+  pub compiler_error: Option<String>,
+  pub compiler_message: Option<String>,
+  pub program_output: Option<String>,
+  pub program_error: Option<String>,
+  pub program_message: Option<String>,
+  pub permlink: Option<String>,
+  pub url: Option<String>,
+}
+
+impl Result {
   pub fn status(&self) -> i32 {
     self.status
   }
@@ -130,10 +111,5 @@ impl CompileResult {
     } else {
       println!("{}", self.compiler_message.as_ref().unwrap());
     }
-  }
-
-  pub fn dump(&self) -> Result<()> {
-    ::std::io::stdout().write_all(serde_json::to_string_pretty(self)?.as_bytes())?;
-    Ok(())
   }
 }
