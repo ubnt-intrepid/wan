@@ -16,42 +16,42 @@ env:
 matrix:
   include:
     # Linux (glibc)
-    - env: TARGET=i686-unknown-linux-gnu
-      rust: stable
-    - env: TARGET=x86_64-unknown-linux-gnu
-      rust: stable
+    # - env: TARGET=i686-unknown-linux-gnu
+    #   rust: stable
+    # - env: TARGET=x86_64-unknown-linux-gnu
+    #   rust: stable
 
     # Linux (musl libc)
     - env: TARGET=x86_64-unknown-linux-musl
       rust: stable
 
     # Linux (AArch64)
-    - env: TARGET=aarch64-unknown-linux-gnu SKIP_TEST=1
-      rust: stable
+    # - env: TARGET=aarch64-unknown-linux-gnu SKIP_TEST=1
+    #   rust: stable
 
     # macOS
-    - env: TARGET=i686-apple-darwin
-      rust: stable
-      os: osx
+    # - env: TARGET=i686-apple-darwin
+    #   rust: stable
+    #   os: osx
     - env: TARGET=x86_64-apple-darwin
       rust: stable
       os: osx
 
     # FreeBSD
-    - env: TARGET=i686-unknown-freebsd SKIP_TEST=1
-      rust: stable
-    - env: TARGET=x86_64-unknown-freebsd SKIP_TEST=1
-      rust: stable
+    # - env: TARGET=i686-unknown-freebsd SKIP_TEST=1
+    #   rust: stable
+    # - env: TARGET=x86_64-unknown-freebsd SKIP_TEST=1
+    #   rust: stable
 
     # Android
     # - env: TARGET=i686-linux-android ARCH=x86 API=23 SKIP_TEST=1
     #   rust: stable
-    - env: TARGET=arm-linux-androideabi ARCH=arm API=24 SKIP_TEST=1
-      rust: stable
+    # - env: TARGET=arm-linux-androideabi ARCH=arm API=24 SKIP_TEST=1
+    #   rust: stable
 
     # beta/nightly channel
-    - env: TARGET=x86_64-unknown-linux-gnu
-      rust: beta
+    # - env: TARGET=x86_64-unknown-linux-gnu
+    #   rust: beta
     - env: TARGET=x86_64-unknown-linux-gnu
       rust: nightly
 
