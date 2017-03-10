@@ -1,5 +1,6 @@
 use serde;
 use serde_json;
+use serde_yaml;
 use std::io::Write;
 
 
@@ -43,5 +44,10 @@ pub fn str_join<I, S>(iter: I, join: &str) -> String
 
 pub fn dump_to_json<S: serde::Serialize>(value: &S) -> ::Result<()> {
   ::std::io::stdout().write_all(serde_json::to_string_pretty(value)?.as_bytes())?;
+  Ok(())
+}
+
+pub fn dump_to_yaml<S: serde::Serialize>(value: &S) -> ::Result<()> {
+  ::std::io::stdout().write_all(serde_yaml::to_string(value)?.as_bytes())?;
   Ok(())
 }

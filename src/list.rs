@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use serde;
 #[cfg(test)]
 use serde_json;
@@ -7,7 +8,7 @@ use http;
 
 macro_rules! enum_str {
   ($name:ident { $($variant:ident : $value:expr, )* }) => {
-    #[derive(Debug, Serialize)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
     pub enum $name {
       $($variant,)*
     }
@@ -31,6 +32,13 @@ macro_rules! enum_str {
           )*
           s => Err(format!("No such value: {}", s)),
         }
+      }
+    }
+
+    impl ::serde::Serialize for $name {
+      fn serialize<S>(&self, s: S) -> ::std::result::Result<S::Ok, S::Error>
+        where S: ::serde::Serializer {
+        s.serialize_str(&self.to_string())
       }
     }
 

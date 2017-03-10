@@ -39,21 +39,49 @@ impl<'a, 'b: 'a> RegisterSubcommand for clap::App<'a, 'b> {
   }
 }
 
+#[derive(Debug)]
+pub enum ListFormat {
+  /// JSON
+  Json,
+  /// YAML
+  Yaml,
+}
+
+impl ::std::str::FromStr for ListFormat {
+  type Err = String;
+  fn from_str(s: &str) -> Result<ListFormat, Self::Err> {
+    match s {
+      "json" => Ok(ListFormat::Json),
+      "yaml" => Ok(ListFormat::Yaml),
+      s => Err(format!("no such variant: {}", s)),
+    }
+  }
+}
 
 pub struct ListApp {
-  dump: bool,
+  format: Option<ListFormat>,
+  lang: Option<list::Language>,
 }
 
 impl MakeApp for ListApp {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("List compiler information")
-      .arg_from_usage("-d, --dump  'Dump information as raw JSON format'")
+      .arg(clap::Arg::with_name("format")
+        .help("Display format")
+        .short("f")
+        .long("format")
+        .takes_value(true)
+        .possible_values(&["json", "yaml"]))
+      .arg_from_usage("--lang=[lang]    'Language'")
   }
 }
 
 impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp {
   fn from(m: &'b clap::ArgMatches<'a>) -> ListApp {
-    ListApp { dump: m.is_present("dump") }
+    ListApp {
+      format: m.value_of("format").and_then(|s| s.parse().ok()),
+      lang: m.value_of("lang").and_then(|s| s.parse().ok()),
+    }
   }
 }
 
@@ -61,25 +89,30 @@ impl Run for ListApp {
   type Err = ::Error;
 
   fn run(self) -> Result<i32, Self::Err> {
-    let info_list = list::get_compiler_info()?;
+    let mut info_list = list::get_compiler_info()?;
 
-    if self.dump {
-      util::dump_to_json(&info_list)?;
-    } else {
-      for info in info_list {
-        println!("{}", info);
-      }
+    if let Some(lang) = self.lang {
+      info_list = info_list.into_iter().filter(|ref s| s.language == lang).collect();
     }
 
+    match self.format {
+      Some(ListFormat::Json) => util::dump_to_json(&info_list)?,
+      Some(ListFormat::Yaml) => util::dump_to_yaml(&info_list)?,
+      _ => {
+        for info in info_list {
+          println!("{}", info.name);
+        }
+      }
+    }
     Ok(0)
   }
 }
 
 
 pub struct RunApp<'a> {
-  compiler: &'a str,
   filename: &'a str,
   files: Option<clap::Values<'a>>,
+  compiler: Option<&'a str>,
   options: Option<&'a str>,
   compiler_args: Option<&'a str>,
   runtime_args: Option<&'a str>,
@@ -90,9 +123,9 @@ impl<'c> MakeApp for RunApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("Post a code to wandbox and get a result")
       .args_from_usage(r#"
-        <compiler>                      'Compiler name'
         <filename>                      'Target filename'
         [files...]                      'Supplemental files'
+        --compiler=[compiler]           'Compiler name'
         --options=[options]             'Used options (separated by comma)'
         --compile-args=[compiler-args]  'Arguments for compiler'
         --runtime-args=[runtime-args]   'Arguments for compiled binary or interpreter'
@@ -104,9 +137,9 @@ impl<'c> MakeApp for RunApp<'c> {
 impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
   fn from(m: &'b clap::ArgMatches<'a>) -> RunApp<'a> {
     RunApp {
-      compiler: m.value_of("compiler").unwrap(),
       filename: m.value_of("filename").unwrap(),
       files: m.values_of("files"),
+      compiler: m.value_of("compiler"),
       options: m.value_of("options"),
       compiler_args: m.value_of("compiler-args"),
       runtime_args: m.value_of("runtime-args"),
@@ -127,7 +160,8 @@ impl<'a> Run for RunApp<'a> {
       io::stdin().read_to_string(&mut code)?;
     }
 
-    let mut parameter = compile::Parameter::new(code, self.compiler).save(self.permlink);
+    let mut parameter = compile::Parameter::new(code, self.compiler.unwrap_or("gcc-head"))
+      .save(self.permlink);
 
     if let Some(options) = self.options {
       parameter = parameter.options(options);
