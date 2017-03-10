@@ -15,9 +15,10 @@ $ cargo install --git https://github.com/ubnt-intrepid/wan.git
 ```
 
 ## Commands
-* `wan list`
 * `wan run <compiler> <filename> [<runtime-options>...]`
-* `wan-script`
+* `wan script <filename>`
+* `wan list`
+* `wan permlink <link>`
 
 ## Usage
 * List compiler informations
