@@ -7,6 +7,7 @@ extern crate shlex;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use clap::{AppSettings, SubCommand};
+use wan::compile::Code;
 
 
 trait Register<'a, 'b: 'a> {
@@ -69,17 +70,17 @@ impl Run for ListApp {
 }
 
 
-struct RunApp {
-  compiler: String,
-  filename: String,
-  files: Option<Vec<String>>,
-  options: Option<String>,
-  compiler_args: Option<String>,
-  runtime_args: Option<String>,
+struct RunApp<'a> {
+  compiler: &'a str,
+  filename: &'a str,
+  files: Option<clap::Values<'a>>,
+  options: Option<&'a str>,
+  compiler_args: Option<&'a str>,
+  runtime_args: Option<&'a str>,
   permlink: bool,
 }
 
-impl<'a, 'b: 'a> MakeApp<'a, 'b> for RunApp {
+impl<'a, 'b: 'a, 'c> MakeApp<'a, 'b> for RunApp<'c> {
   fn make_app(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("Post a code to wandbox and get a result")
       .args_from_usage(r#"
@@ -94,21 +95,21 @@ impl<'a, 'b: 'a> MakeApp<'a, 'b> for RunApp {
   }
 }
 
-impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp {
-  fn from(m: &'b clap::ArgMatches<'a>) -> RunApp {
+impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
+  fn from(m: &'b clap::ArgMatches<'a>) -> RunApp<'a> {
     RunApp {
-      compiler: m.value_of("compiler").map(ToOwned::to_owned).unwrap(),
-      filename: m.value_of("filename").map(ToOwned::to_owned).unwrap(),
-      files: m.values_of("files").map(|v| v.into_iter().map(ToOwned::to_owned).collect()),
-      options: m.value_of("options").map(ToOwned::to_owned),
-      compiler_args: m.value_of("compiler-args").map(ToOwned::to_owned),
-      runtime_args: m.value_of("runtime-args").map(ToOwned::to_owned),
+      compiler: m.value_of("compiler").unwrap(),
+      filename: m.value_of("filename").unwrap(),
+      files: m.values_of("files"),
+      options: m.value_of("options"),
+      compiler_args: m.value_of("compiler-args"),
+      runtime_args: m.value_of("runtime-args"),
       permlink: m.is_present("permlink"),
     }
   }
 }
 
-impl Run for RunApp {
+impl<'a> Run for RunApp<'a> {
   type Err = wan::Error;
 
   fn run(self) -> Result<i32, Self::Err> {
@@ -126,20 +127,16 @@ impl Run for RunApp {
       parameter = parameter.options(options);
     }
 
-    let compiler_args = self.compiler_args.and_then(|s| shlex::split(&s));
-    if let Some(args) = compiler_args {
+    if let Some(args) = self.compiler_args.and_then(|s| shlex::split(&s)) {
       parameter = parameter.compiler_option(args);
     }
 
-    let runtime_args = self.runtime_args.and_then(|s| shlex::split(&s));
-    if let Some(args) = runtime_args {
+    if let Some(args) = self.runtime_args.and_then(|s| shlex::split(&s)) {
       parameter = parameter.runtime_option(args);
     }
 
-    let codes: Option<Vec<_>> = self.files
-      .map(|v| v.into_iter().map(|ref s| wan::compile::Code::new(s)).collect());
-    if let Some(codes) = codes {
-      parameter = parameter.codes(codes);
+    if let Some(files) = self.files {
+      parameter = parameter.codes(files.map(|ref s| Code::new(s)));
     }
 
     let result = parameter.request()?;
@@ -150,24 +147,24 @@ impl Run for RunApp {
 }
 
 
-struct PermlinkApp {
-  link: String,
+struct PermlinkApp<'a> {
+  link: &'a str,
 }
 
-impl<'a, 'b: 'a> MakeApp<'a, 'b> for PermlinkApp {
+impl<'a, 'b: 'a, 'c> MakeApp<'a, 'b> for PermlinkApp<'c> {
   fn make_app(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("Get a result specified a given permanent link")
       .arg_from_usage("<link> 'Link name'")
   }
 }
 
-impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp {
-  fn from(m: &'b clap::ArgMatches<'a>) -> PermlinkApp {
-    PermlinkApp { link: m.value_of("link").map(ToOwned::to_owned).unwrap() }
+impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp<'a> {
+  fn from(m: &'b clap::ArgMatches<'a>) -> PermlinkApp<'a> {
+    PermlinkApp { link: m.value_of("link").unwrap() }
   }
 }
 
-impl Run for PermlinkApp {
+impl<'a> Run for PermlinkApp<'a> {
   type Err = wan::Error;
 
   fn run(self) -> Result<i32, Self::Err> {
@@ -178,13 +175,13 @@ impl Run for PermlinkApp {
 }
 
 
-enum App {
-  Run(RunApp),
+enum App<'a> {
+  Run(RunApp<'a>),
   List(ListApp),
-  Permlink(PermlinkApp),
+  Permlink(PermlinkApp<'a>),
 }
 
-impl<'a, 'b: 'a> MakeApp<'a, 'b> for App {
+impl<'a, 'b: 'a, 'c> MakeApp<'a, 'b> for App<'c> {
   fn make_app(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     let app = app.subcommand(SubCommand::with_name("list").register::<ListApp>());
     let app = app.subcommand(SubCommand::with_name("run").register::<RunApp>());
@@ -193,8 +190,8 @@ impl<'a, 'b: 'a> MakeApp<'a, 'b> for App {
   }
 }
 
-impl<'a> From<clap::ArgMatches<'a>> for App {
-  fn from(m: clap::ArgMatches<'a>) -> App {
+impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for App<'a> {
+  fn from(m: &'b clap::ArgMatches<'a>) -> App<'a> {
     match m.subcommand() {
       ("list", Some(m)) => App::List(m.into()),
       ("run", Some(m)) => App::Run(m.into()),
@@ -204,7 +201,7 @@ impl<'a> From<clap::ArgMatches<'a>> for App {
   }
 }
 
-impl Run for App {
+impl<'a> Run for App<'a> {
   type Err = wan::Error;
 
   fn run(self) -> Result<i32, Self::Err> {
@@ -218,13 +215,13 @@ impl Run for App {
 
 
 fn main() {
-  let app: App = app_from_crate!()
+  let ref matches = app_from_crate!()
     .setting(AppSettings::VersionlessSubcommands)
     .setting(AppSettings::SubcommandRequiredElseHelp)
     .register::<App>()
-    .get_matches()
-    .into();
+    .get_matches();
 
+  let app: App = matches.into();
   match app.run() {
     Ok(code) => std::process::exit(code),
     Err(err) => writeln!(&mut io::stderr(), "failed with: {:?}", err).unwrap(),
