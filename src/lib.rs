@@ -1,7 +1,6 @@
 extern crate hyper;
 extern crate serde;
 extern crate serde_json;
-extern crate serde_yaml;
 extern crate shlex;
 #[macro_use]
 extern crate clap;
@@ -24,6 +23,5 @@ error_chain! {
     Io(::std::io::Error);
     Hyper(::hyper::error::Error);
     SerdeJson(::serde_json::Error);
-    SerdeYaml(::serde_yaml::Error);
   }
 }

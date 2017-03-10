@@ -39,47 +39,23 @@ impl<'a, 'b: 'a> RegisterSubcommand for clap::App<'a, 'b> {
   }
 }
 
-#[derive(Debug)]
-pub enum ListFormat {
-  /// JSON
-  Json,
-  /// YAML
-  Yaml,
-}
-
-impl ::std::str::FromStr for ListFormat {
-  type Err = String;
-  fn from_str(s: &str) -> Result<ListFormat, Self::Err> {
-    match s {
-      "json" => Ok(ListFormat::Json),
-      "yaml" => Ok(ListFormat::Yaml),
-      s => Err(format!("no such variant: {}", s)),
-    }
-  }
-}
-
 pub struct ListApp {
-  format: Option<ListFormat>,
+  name_only: bool,
   lang: Option<list::Language>,
 }
 
 impl MakeApp for ListApp {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("List compiler information")
-      .arg(clap::Arg::with_name("format")
-        .help("Display format")
-        .short("f")
-        .long("format")
-        .takes_value(true)
-        .possible_values(&["json", "yaml"]))
-      .arg_from_usage("--lang=[lang]    'Language'")
+      .arg_from_usage("--name-only      'Display only names'")
+      .arg_from_usage("--lang=[lang]    'Filter by given language'")
   }
 }
 
 impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp {
   fn from(m: &'b clap::ArgMatches<'a>) -> ListApp {
     ListApp {
-      format: m.value_of("format").and_then(|s| s.parse().ok()),
+      name_only: m.is_present("name-only"),
       lang: m.value_of("lang").and_then(|s| s.parse().ok()),
     }
   }
@@ -95,15 +71,14 @@ impl Run for ListApp {
       info_list = info_list.into_iter().filter(|ref s| s.language == lang).collect();
     }
 
-    match self.format {
-      Some(ListFormat::Json) => util::dump_to_json(&info_list)?,
-      Some(ListFormat::Yaml) => util::dump_to_yaml(&info_list)?,
-      _ => {
-        for info in info_list {
-          println!("{}", info.name);
-        }
+    if self.name_only {
+      for info in info_list {
+        println!("{}", info.name);
       }
+    } else {
+      util::dump_to_json(&info_list)?;
     }
+
     Ok(0)
   }
 }

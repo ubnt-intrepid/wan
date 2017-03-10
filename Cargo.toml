@@ -1,17 +1,16 @@
 [package]
 name = "wan"
 description = "Commandline interface of Wandbox"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
 
 [dependencies]
-hyper = "^0.10.5"
+clap = "^2.20.5"
 env_logger = "^0.4.2"
+error-chain = "^0.10.0"
+hyper = "^0.10.5"
 log = "^0.3.7"
 serde = "^0.9.11"
 serde_derive = "^0.9.11"
 serde_json = "^0.9.9"
-serde_yaml = "^0.6.2"
-error-chain = "^0.10.0"
-clap = "^2.20.5"
 shlex = "0.1.1"
