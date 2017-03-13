@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{self, Read, BufRead};
 use clap;
 use shlex;
+use regex::Regex;
 
 use compile;
 use list;
@@ -41,14 +42,16 @@ impl<'a, 'b: 'a> RegisterSubcommand for clap::App<'a, 'b> {
 
 pub struct ListApp {
   name_only: bool,
-  lang: Option<list::Language>,
+  name: Option<String>,
+  lang: Option<String>,
 }
 
 impl MakeApp for ListApp {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("List compiler information")
-      .arg_from_usage("--name-only      'Display only names'")
-      .arg_from_usage("--lang=[lang]    'Filter by given language'")
+      .arg_from_usage("--name-only      'Display names only'")
+      .arg_from_usage("--name=[name]    'Filter by name with Regex pattern'")
+      .arg_from_usage("--lang=[lang]    'Filter by language with Regex pattern'")
   }
 }
 
@@ -56,7 +59,8 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp {
   fn from(m: &'b clap::ArgMatches<'a>) -> ListApp {
     ListApp {
       name_only: m.is_present("name-only"),
-      lang: m.value_of("lang").and_then(|s| s.parse().ok()),
+      name: m.value_of("name").map(ToOwned::to_owned),
+      lang: m.value_of("lang").map(ToOwned::to_owned),
     }
   }
 }
@@ -67,8 +71,19 @@ impl Run for ListApp {
   fn run(self) -> Result<i32, Self::Err> {
     let mut info_list = list::get_compiler_info()?;
 
-    if let Some(lang) = self.lang {
-      info_list = info_list.into_iter().filter(|ref s| s.language == lang).collect();
+    if let Some(name) = self.name {
+      let ptn = Regex::new(&name)?;
+      info_list =
+        info_list.into_iter().filter(|ref s| ptn.is_match(&format!("{}", s.name))).collect();
+    }
+
+    if let Some(mut lang) = self.lang {
+      if lang == "C++" {
+        lang = r"C\+\+".to_owned();
+      }
+      let ptn = Regex::new(&lang)?;
+      info_list =
+        info_list.into_iter().filter(|ref s| ptn.is_match(&format!("{}", s.language))).collect();
     }
 
     if self.name_only {
@@ -169,7 +184,8 @@ pub struct ScriptApp<'a> {
 
 impl<'c> MakeApp for ScriptApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-    app.args_from_usage(r#"
+    app.about("Evaluate a code and print result immediately")
+      .args_from_usage(r#"
       <filename>   'target filename'
       [args...]    'runtime options'
     "#)
