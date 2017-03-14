@@ -40,13 +40,13 @@ impl<'a, 'b: 'a> RegisterSubcommand for clap::App<'a, 'b> {
   }
 }
 
-pub struct ListApp {
+pub struct ListApp<'a> {
   name_only: bool,
-  name: Option<String>,
-  lang: Option<String>,
+  name: Option<&'a str>,
+  lang: Option<&'a str>,
 }
 
-impl MakeApp for ListApp {
+impl<'c> MakeApp for ListApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("List compiler information")
       .arg_from_usage("--name-only      'Display names only'")
@@ -55,43 +55,53 @@ impl MakeApp for ListApp {
   }
 }
 
-impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp {
-  fn from(m: &'b clap::ArgMatches<'a>) -> ListApp {
+impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp<'a> {
+  fn from(m: &'b clap::ArgMatches<'a>) -> ListApp<'a> {
     ListApp {
       name_only: m.is_present("name-only"),
-      name: m.value_of("name").map(ToOwned::to_owned),
-      lang: m.value_of("lang").map(ToOwned::to_owned),
+      name: m.value_of("name"),
+      lang: m.value_of("lang"),
     }
   }
 }
 
-impl Run for ListApp {
+impl<'a> Run for ListApp<'a> {
   type Err = ::Error;
 
   fn run(self) -> Result<i32, Self::Err> {
-    let mut info_list = list::get_compiler_info()?;
+    let ptn_name = match self.name {
+      Some(name) => Some(Regex::new(&name)?),
+      None => None,
+    };
 
-    if let Some(name) = self.name {
-      let ptn = Regex::new(&name)?;
-      info_list =
-        info_list.into_iter().filter(|ref s| ptn.is_match(&format!("{}", s.name))).collect();
-    }
-
-    if let Some(mut lang) = self.lang {
-      if lang == "C++" {
-        lang = r"C\+\+".to_owned();
+    let ptn_lang = match self.lang {
+      Some(lang) => {
+        if lang == "C++" {
+          Some(Regex::new(r"C\+\+")?)
+        } else {
+          Some(Regex::new(&lang)?)
+        }
       }
-      let ptn = Regex::new(&lang)?;
-      info_list =
-        info_list.into_iter().filter(|ref s| ptn.is_match(&format!("{}", s.language))).collect();
-    }
+      None => None,
+    };
+
+    let info_list = list::get_compiler_info()?;
+    let info_list = info_list.into_iter()
+      .filter(move |info| {
+        ptn_name.as_ref()
+          .map(|m| m.is_match(&info.name))
+          .unwrap_or(true) &&
+        ptn_lang.as_ref()
+          .map(|m| m.is_match(&format!("{}", info.language)))
+          .unwrap_or(true)
+      });
 
     if self.name_only {
       for info in info_list {
         println!("{}", info.name);
       }
     } else {
-      util::dump_to_json(&info_list)?;
+      util::dump_to_json(&info_list.collect::<Vec<_>>())?;
     }
 
     Ok(0)
@@ -265,7 +275,7 @@ impl<'a> Run for PermlinkApp<'a> {
 
 
 pub enum App<'a> {
-  List(ListApp),
+  List(ListApp<'a>),
   Run(RunApp<'a>),
   Script(ScriptApp<'a>),
   Permlink(PermlinkApp<'a>),
