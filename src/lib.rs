@@ -1,4 +1,5 @@
 extern crate hyper;
+extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate shlex;
@@ -22,6 +23,7 @@ error_chain! {
   foreign_links {
     Io(::std::io::Error);
     Hyper(::hyper::error::Error);
+    Regex(::regex::Error);
     SerdeJson(::serde_json::Error);
   }
 }
