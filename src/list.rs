@@ -79,6 +79,7 @@ enum_str!(Language {
   LazyK: "Lazy K",
   Lisp: "Lisp",
   Lua: "Lua",
+  OCaml: "OCaml",
   Pascal: "Pascal",
   Perl: "Perl",
   PHP: "PHP",
