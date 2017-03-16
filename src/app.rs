@@ -156,17 +156,19 @@ impl<'a> Run for RunApp<'a> {
     if self.filename != "-" {
       File::open(self.filename)?
         .read_to_string(&mut code)?;
-        use std::path::PathBuf;
-        use std::borrow::Borrow;
-      lang = PathBuf::from(self.filename).extension().and_then(|ext| list::Language::from_extension(ext.to_string_lossy().borrow()).ok());
+      use std::path::PathBuf;
+      use std::borrow::Borrow;
+      lang = PathBuf::from(self.filename)
+        .extension()
+        .and_then(|ext| list::Language::from_extension(ext.to_string_lossy().borrow()).ok());
     } else {
       io::stdin().read_to_string(&mut code)?;
     }
 
-    info!("guessed language: {:?}", lang);
+    let compiler = self.compiler.or_else(|| lang.and_then(|ref lang| list::DEFAULT_COMPILERS.get(lang).map(|s| *s)))
+      .unwrap_or("gcc-head");
 
-    let mut parameter = compile::Parameter::new(code, self.compiler.unwrap_or("gcc-head"))
-      .save(self.permlink);
+    let mut parameter = compile::Parameter::new(code, compiler).save(self.permlink);
 
     if let Some(options) = self.options {
       parameter = parameter.options(options);

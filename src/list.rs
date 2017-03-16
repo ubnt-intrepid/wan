@@ -2,13 +2,14 @@
 use serde;
 #[cfg(test)]
 use serde_json;
+use std::collections::HashMap;
 use Result;
 use util::Either;
 use http;
 
 macro_rules! enum_str {
   ($name:ident { $($variant:ident : $value:expr, )* }) => {
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     pub enum $name {
       $($variant,)*
       Unknown(String),
@@ -128,6 +129,21 @@ impl Language {
       ext => Err(format!("Failed to guess filetype: '{}' is unknown extension", ext).into()),
     }
   }
+}
+
+lazy_static!{
+  pub static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
+    let mut mapping = HashMap::new();
+    mapping.insert(Language::BashScript, "bash");
+    mapping.insert(Language::C, "gcc-head-c");
+    mapping.insert(Language::Csharp, "mono-head");
+    mapping.insert(Language::Cplusplus, "gcc-head");
+    mapping.insert(Language::CoffeeScript, "coffeescript-head");
+    mapping.insert(Language::OCaml, "ocaml-head");
+    mapping.insert(Language::Rust, "rust-head");
+    // omit...
+    mapping
+  };
 }
 
 #[test]
