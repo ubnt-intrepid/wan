@@ -8,9 +8,10 @@ use http;
 
 macro_rules! enum_str {
   ($name:ident { $($variant:ident : $value:expr, )* }) => {
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub enum $name {
       $($variant,)*
+      Unknown(String),
     }
 
     impl ::std::fmt::Display for $name {
@@ -19,6 +20,7 @@ macro_rules! enum_str {
           $(
             $name :: $variant => write!(f, $value),
           )*
+          $name :: Unknown(ref s) => write!(f, "{}", s),
         }
       }
     }
@@ -30,7 +32,7 @@ macro_rules! enum_str {
           $(
             $value => Ok($name :: $variant),
           )*
-          s => Err(format!("No such value: {}", s)),
+          s => Ok($name :: Unknown(s.to_owned())),
         }
       }
     }
