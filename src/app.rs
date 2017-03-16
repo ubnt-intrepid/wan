@@ -1,6 +1,5 @@
-use std::env;
 use std::fs::File;
-use std::io::{self, Read, BufRead};
+use std::io::{self, Read};
 use clap;
 use shlex;
 use regex::Regex;
@@ -187,65 +186,6 @@ impl<'a> Run for RunApp<'a> {
 }
 
 
-pub struct ScriptApp<'a> {
-  filename: &'a str,
-  args: Option<clap::Values<'a>>,
-}
-
-impl<'c> MakeApp for ScriptApp<'c> {
-  fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-    app.about("Evaluate a code and print result immediately")
-      .args_from_usage(r#"
-      <filename>   'target filename'
-      [args...]    'runtime options'
-    "#)
-  }
-}
-
-impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ScriptApp<'a> {
-  fn from(m: &'b clap::ArgMatches<'a>) -> ScriptApp<'a> {
-    ScriptApp {
-      filename: m.value_of("filename").unwrap(),
-      args: m.values_of("args"),
-    }
-  }
-}
-
-impl<'a> Run for ScriptApp<'a> {
-  type Err = ::Error;
-  fn run(self) -> ::Result<i32> {
-    let mut code = String::new();
-    let mut f = ::std::io::BufReader::new(File::open(self.filename)?);
-    f.read_line(&mut String::new())?;
-    f.read_to_string(&mut code)?;
-
-    let compiler = env::var("WAN_COMPILER").unwrap_or("gcc-head".to_owned());
-
-    let mut parameter = compile::Parameter::new(code, compiler);
-
-    if let Ok(options) = env::var("WAN_OPTIONS") {
-      parameter = parameter.options(options);
-    }
-
-    let compiler_args = env::var("WAN_COMPILER_OPTIONS")
-      .ok()
-      .and_then(|ref s| shlex::split(s));
-    if let Some(args) = compiler_args {
-      parameter = parameter.compiler_option(args);
-    }
-
-    if let Some(args) = self.args {
-      parameter = parameter.runtime_option(args);
-    }
-
-    let result = parameter.request()?;
-    result.report();
-
-    Ok(result.status())
-  }
-}
-
-
 pub struct PermlinkApp<'a> {
   link: &'a str,
 }
@@ -277,7 +217,6 @@ impl<'a> Run for PermlinkApp<'a> {
 pub enum App<'a> {
   List(ListApp<'a>),
   Run(RunApp<'a>),
-  Script(ScriptApp<'a>),
   Permlink(PermlinkApp<'a>),
 }
 
@@ -286,7 +225,6 @@ impl<'c> MakeApp for App<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     let app = app.register_subcommand::<ListApp>("list");
     let app = app.register_subcommand::<RunApp>("run");
-    let app = app.register_subcommand::<ScriptApp>("script");
     let app = app.register_subcommand::<PermlinkApp>("permlink");
     app
   }
@@ -297,7 +235,6 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for App<'a> {
     match m.subcommand() {
       ("list", Some(m)) => App::List(m.into()),
       ("run", Some(m)) => App::Run(m.into()),
-      ("script", Some(m)) => App::Script(m.into()),
       ("permlink", Some(m)) => App::Permlink(m.into()),
       _ => unreachable!(),
     }
@@ -311,7 +248,6 @@ impl<'a> Run for App<'a> {
     match self {
       App::List(a) => a.run(),
       App::Run(a) => a.run(),
-      App::Script(a) => a.run(),
       App::Permlink(a) => a.run(),
     }
   }
