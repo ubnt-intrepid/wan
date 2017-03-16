@@ -1,6 +1,6 @@
 [root]
 name = "wan"
-version = "0.0.1"
+version = "0.0.2-dev"
 dependencies = [
  "clap 2.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

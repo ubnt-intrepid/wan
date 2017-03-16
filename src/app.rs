@@ -152,12 +152,18 @@ impl<'a> Run for RunApp<'a> {
 
   fn run(self) -> Result<i32, Self::Err> {
     let mut code = String::new();
+    let mut lang = None;
     if self.filename != "-" {
       File::open(self.filename)?
         .read_to_string(&mut code)?;
+        use std::path::PathBuf;
+        use std::borrow::Borrow;
+      lang = PathBuf::from(self.filename).extension().and_then(|ext| list::Language::from_extension(ext.to_string_lossy().borrow()).ok());
     } else {
       io::stdin().read_to_string(&mut code)?;
     }
+
+    info!("guessed language: {:?}", lang);
 
     let mut parameter = compile::Parameter::new(code, self.compiler.unwrap_or("gcc-head"))
       .save(self.permlink);

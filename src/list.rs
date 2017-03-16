@@ -95,6 +95,47 @@ enum_str!(Language {
   VimScript: "Vim script",
 });
 
+impl Language {
+  pub fn from_extension(ext: &str) -> ::Result<Language> {
+    match ext {
+      "sh" => Ok(Language::BashScript),
+      "c" | "h" => Ok(Language::C),
+      "cs" => Ok(Language::Csharp),
+      "cpp" | "cxx" | "cc" | "hpp" | "hxx" | "hh" => Ok(Language::Cplusplus),
+      "coffee" => Ok(Language::CoffeeScript),
+      "d" => Ok(Language::D),
+      "ex" | "exs" => Ok(Language::Elixir),
+      "erl" => Ok(Language::Erlang),
+      "groovy" => Ok(Language::Groovy),
+      "hs" => Ok(Language::Haskell),
+      "java" => Ok(Language::Java),
+      "js" => Ok(Language::JavaScript),
+      "lazyk" => Ok(Language::LazyK),
+      "lisp" => Ok(Language::Lisp),
+      "lua" => Ok(Language::Lua),
+      "ml" => Ok(Language::OCaml),
+      "pas" => Ok(Language::Pascal),
+      "pl" => Ok(Language::Perl),
+      "php" => Ok(Language::PHP),
+      "py" => Ok(Language::Python),
+      "rill" => Ok(Language::Rill),
+      "rb" => Ok(Language::Ruby),
+      "rs" => Ok(Language::Rust),
+      "scala" => Ok(Language::Scala),
+      "sql" => Ok(Language::SQL),
+      "swift" => Ok(Language::Swift),
+      "vim" => Ok(Language::VimScript),
+      ext => Err(format!("Failed to guess filetype: '{}' is unknown extension", ext).into()),
+    }
+  }
+}
+
+#[test]
+fn test_extension() {
+  assert_eq!(Language::from_extension("rs").unwrap(), Language::Rust);
+  assert!(Language::from_extension("hoge").is_err());
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CompilerInfo {
