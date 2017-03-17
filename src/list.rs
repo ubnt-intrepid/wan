@@ -2,175 +2,83 @@
 use serde;
 #[cfg(test)]
 use serde_json;
-use std::collections::HashMap;
 use Result;
 use util::Either;
 use http;
 
-macro_rules! enum_str {
-  ($name:ident { $($variant:ident : $value:expr, )* }) => {
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub enum $name {
-      $($variant,)*
-      Unknown(String),
-    }
 
-    impl ::std::fmt::Display for $name {
-      fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match *self {
-          $(
-            $name :: $variant => write!(f, $value),
-          )*
-          $name :: Unknown(ref s) => write!(f, "{}", s),
-        }
-      }
-    }
-
-    impl ::std::str::FromStr for $name {
-      type Err = String;
-      fn from_str(s: &str) -> ::std::result::Result<$name, Self::Err> {
-        match s {
-          $(
-            $value => Ok($name :: $variant),
-          )*
-          s => Ok($name :: Unknown(s.to_owned())),
-        }
-      }
-    }
-
-    impl ::serde::Serialize for $name {
-      fn serialize<S>(&self, s: S) -> ::std::result::Result<S::Ok, S::Error>
-        where S: ::serde::Serializer {
-        s.serialize_str(&self.to_string())
-      }
-    }
-
-    impl ::serde::Deserialize for $name {
-      fn deserialize<D>(d: D) -> ::std::result::Result<$name, D::Error>
-        where D: ::serde::Deserializer {
-        struct Visitor;
-        impl ::serde::de::Visitor for Visitor {
-          type Value = $name;
-          fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-            formatter.write_str(concat!("enum ", stringify!($name)))
-          }
-          fn visit_str<E>(self, s: &str) -> ::std::result::Result<Self::Value, E>
-            where E: ::serde::de::Error {
-            ::std::str::FromStr::from_str(s).map_err(|e| E::custom(e))
-          }
-        }
-        d.deserialize(Visitor)
-      }
-    }
-  }
+pub trait FromExtension: Sized {
+  type Err;
+  fn from_extension(ext: &str) -> ::std::result::Result<Self, Self::Err>;
 }
 
-enum_str!(Language {
-  BashScript: "Bash script",
-  C: "C",
-  Csharp: "C#",
-  Cplusplus: "C++",
-  CoffeeScript: "CoffeeScript",
-  CPP: "CPP",
-  D: "D",
-  Elixir: "Elixir",
-  Erlang: "Erlang",
-  Go: "Go",
-  Groovy: "Groovy",
-  Haskell: "Haskell",
-  Java: "Java",
-  JavaScript: "JavaScript",
-  LazyK: "Lazy K",
-  Lisp: "Lisp",
-  Lua: "Lua",
-  OCaml: "OCaml",
-  Pascal: "Pascal",
-  Perl: "Perl",
-  PHP: "PHP",
-  Python: "Python",
-  Rill: "Rill",
-  Ruby: "Ruby",
-  Rust: "Rust",
-  Scala: "Scala",
-  SQL: "SQL",
-  Swift: "Swift",
-  VimScript: "Vim script",
-});
-
-impl Language {
-  pub fn from_extension(ext: &str) -> ::Result<Language> {
-    match ext {
-      "sh" => Ok(Language::BashScript),
-      "c" | "h" => Ok(Language::C),
-      "cs" => Ok(Language::Csharp),
-      "cpp" | "cxx" | "cc" | "hpp" | "hxx" | "hh" => Ok(Language::Cplusplus),
-      "coffee" => Ok(Language::CoffeeScript),
-      "d" => Ok(Language::D),
-      "ex" | "exs" => Ok(Language::Elixir),
-      "erl" => Ok(Language::Erlang),
-      "go" => Ok(Language::Go),
-      "groovy" => Ok(Language::Groovy),
-      "hs" => Ok(Language::Haskell),
-      "java" => Ok(Language::Java),
-      "js" => Ok(Language::JavaScript),
-      "lazy" => Ok(Language::LazyK),
-      "lisp" => Ok(Language::Lisp),
-      "lua" => Ok(Language::Lua),
-      "ml" => Ok(Language::OCaml),
-      "pas" => Ok(Language::Pascal),
-      "pl" => Ok(Language::Perl),
-      "php" => Ok(Language::PHP),
-      "py" => Ok(Language::Python),
-      "rill" => Ok(Language::Rill),
-      "rb" => Ok(Language::Ruby),
-      "rs" => Ok(Language::Rust),
-      "scala" => Ok(Language::Scala),
-      "sql" => Ok(Language::SQL),
-      "swift" => Ok(Language::Swift),
-      "vim" => Ok(Language::VimScript),
-      ext => Err(format!("Failed to guess filetype: '{}' is unknown extension", ext).into()),
-    }
-  }
+pub trait GetDefaultCompiler {
+  fn get_default_compiler(&self) -> Option<&'static str>;
 }
 
-lazy_static!{
-  static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
-    let mut mapping = HashMap::new();
-    mapping.insert(Language::BashScript, "bash");
-    mapping.insert(Language::C, "gcc-head-c");
-    mapping.insert(Language::Csharp, "mono-head");
-    mapping.insert(Language::Cplusplus, "gcc-head");
-    mapping.insert(Language::CoffeeScript, "coffeescript-head");
-    mapping.insert(Language::CPP, "gcc-head-pp");
-    mapping.insert(Language::D, "ldc-head");
-    mapping.insert(Language::Elixir, "elixir-head");
-    mapping.insert(Language::Erlang, "erlang-head");
-    mapping.insert(Language::Go, "go-head");
-    mapping.insert(Language::Groovy, "groovy-head");
-    mapping.insert(Language::Haskell, "ghc-head");
-    mapping.insert(Language::Java, "openjdk-head");
-    mapping.insert(Language::JavaScript, "nodejs-head");
-    mapping.insert(Language::LazyK, "lazyk");
-    mapping.insert(Language::Lisp, "clisp-2.49");
-    mapping.insert(Language::Lua, "lua-5.3.4");
-    mapping.insert(Language::OCaml, "ocaml-head");
-    mapping.insert(Language::Pascal, "fpc-head");
-    mapping.insert(Language::Perl, "perl-head");
-    mapping.insert(Language::PHP, "php-head");
-    mapping.insert(Language::Python, "cpython-head");
-    mapping.insert(Language::Rill, "rill-head");
-    mapping.insert(Language::Ruby, "ruby-head");
-    mapping.insert(Language::Rust, "rust-head");
-    mapping.insert(Language::Scala, "scala-head");
-    mapping.insert(Language::SQL, "sqlite-head");
-    mapping.insert(Language::Swift, "swift-head");
-    mapping.insert(Language::VimScript, "vim-head");
-    mapping
-  };
-}
 
-pub fn get_default_compiler(lang: &Language) -> Option<&'static str> {
-  DEFAULT_COMPILERS.get(lang).map(|s| *s)
+#[derive(Debug, Clone, PartialEq, WanLanguageList)]
+pub enum Language {
+  #[wan(value="Bash script", compiler="bash", ext="sh")]
+  BashScript,
+  #[wan(compiler="gcc-head-c", ext="c,h")]
+  C,
+  #[wan(value="C#", compiler="mono-head", ext="cs")]
+  Csharp,
+  #[wan(value="C++", compiler="gcc-head", ext="cpp,cxx,cc,hpp,hxx,hh")]
+  Cplusplus,
+  #[wan(ext="coffee")]
+  CoffeeScript,
+  #[wan(compiler="gcc-head-pp")]
+  CPP,
+  #[wan(compiler="ldc-head", ext="d")]
+  D,
+  #[wan(ext="ex,exs")]
+  Elixir,
+  #[wan(ext="erl")]
+  Erlang,
+  #[wan(ext="go")]
+  Go,
+  #[wan(ext="groovy")]
+  Groovy,
+  #[wan(compiler="ghc-head", ext="hs")]
+  Haskell,
+  #[wan(compiler="openjdk-head", ext="java")]
+  Java,
+  #[wan(compiler="nodejs-head", ext="js")]
+  JavaScript,
+  #[wan(value="Lazy K", compiler="lazyk", ext="lazy")]
+  LazyK,
+  #[wan(compiler="clisp-2.49", ext="lisp")]
+  Lisp,
+  #[wan(compiler="lua-5.3.4", ext="lua")]
+  Lua,
+  #[wan(ext="ml")]
+  OCaml,
+  #[wan(compiler="fpc-head", ext="pas")]
+  Pascal,
+  #[wan(ext="pl")]
+  Perl,
+  #[wan(ext="php")]
+  PHP,
+  #[wan(compiler="cpython-head", ext="py")]
+  Python,
+  #[wan(ext="rill")]
+  Rill,
+  #[wan(ext="rb")]
+  Ruby,
+  #[wan(ext="rs")]
+  Rust,
+  #[wan(ext="scala")]
+  Scala,
+  #[wan(compiler="sqlite-head", ext="sql")]
+  SQL,
+  #[wan(ext="swift")]
+  Swift,
+  #[wan(value="Vim script", compiler="vim-head", ext="vim")]
+  VimScript,
+  #[wan(ignore)]
+  Unknown(String),
 }
 
 #[test]

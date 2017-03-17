@@ -162,13 +162,15 @@ impl<'a> RunApp<'a> {
   }
 
   fn guess_compiler(&self) -> Option<String> {
+    use list::FromExtension;
+    use list::GetDefaultCompiler;
     self.compiler
       .or_else(|| if self.filename != "-" {
         PathBuf::from(self.filename)
           .extension()
           .map(|ext| ext.to_string_lossy())
           .and_then(|ext| list::Language::from_extension(ext.borrow()).ok())
-          .and_then(|ref lang| list::get_default_compiler(lang))
+          .and_then(|ref lang| lang.get_default_compiler())
       } else {
         None
       })

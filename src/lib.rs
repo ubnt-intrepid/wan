@@ -5,13 +5,11 @@ extern crate serde_json;
 extern crate shlex;
 extern crate clap;
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
-extern crate lazy_static;
+extern crate wan_derive;
 
 pub mod app;
 pub mod compile;
