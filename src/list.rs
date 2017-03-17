@@ -7,95 +7,97 @@ use Result;
 use util::Either;
 use http;
 
-macro_rules! enum_str {
-  ($name:ident { $($variant:ident : $value:expr, )* }) => {
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub enum $name {
-      $($variant,)*
-      Unknown(String),
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumStr)]
+pub enum Language {
+  #[wan(value="Bash script")]
+  BashScript,
+  
+  #[wan(value="C")]
+  C,
 
-    impl ::std::fmt::Display for $name {
-      fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match *self {
-          $(
-            $name :: $variant => write!(f, $value),
-          )*
-          $name :: Unknown(ref s) => write!(f, "{}", s),
-        }
-      }
-    }
+  #[wan(value="C#")]
+  Csharp,
 
-    impl ::std::str::FromStr for $name {
-      type Err = String;
-      fn from_str(s: &str) -> ::std::result::Result<$name, Self::Err> {
-        match s {
-          $(
-            $value => Ok($name :: $variant),
-          )*
-          s => Ok($name :: Unknown(s.to_owned())),
-        }
-      }
-    }
+  #[wan(value="C++")]
+  Cplusplus,
 
-    impl ::serde::Serialize for $name {
-      fn serialize<S>(&self, s: S) -> ::std::result::Result<S::Ok, S::Error>
-        where S: ::serde::Serializer {
-        s.serialize_str(&self.to_string())
-      }
-    }
+  #[wan(value="CoffeeScript")]
+  CoffeeScript,
 
-    impl ::serde::Deserialize for $name {
-      fn deserialize<D>(d: D) -> ::std::result::Result<$name, D::Error>
-        where D: ::serde::Deserializer {
-        struct Visitor;
-        impl ::serde::de::Visitor for Visitor {
-          type Value = $name;
-          fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-            formatter.write_str(concat!("enum ", stringify!($name)))
-          }
-          fn visit_str<E>(self, s: &str) -> ::std::result::Result<Self::Value, E>
-            where E: ::serde::de::Error {
-            ::std::str::FromStr::from_str(s).map_err(|e| E::custom(e))
-          }
-        }
-        d.deserialize(Visitor)
-      }
-    }
-  }
+  #[wan(value="CPP")]
+  CPP,
+
+  #[wan(value="D")]
+  D,
+
+  #[wan(value="Elixir")] 
+  Elixir,
+
+  #[wan(value="Erlang")]
+  Erlang,
+
+  #[wan(value="Go")]
+  Go,
+
+  #[wan(value="Groovy")]
+  Groovy,
+
+  #[wan(value="Haskell")]
+  Haskell,
+
+  #[wan(value="Java")]
+  Java,
+
+  #[wan(value="JavaScript")]
+  JavaScript,
+
+  #[wan(value="Lazy K")]
+  LazyK,
+
+  #[wan(value="Lisp")]
+  Lisp,
+
+  #[wan(value="Lua")]
+  Lua,
+
+  #[wan(value="OCaml")]
+  OCaml,
+
+  #[wan(value="Pascal")]
+  Pascal,
+
+  #[wan(value="Perl")]
+  Perl,
+
+  #[wan(value="PHP")]
+  PHP,
+
+  #[wan(value="Python")]
+  Python,
+
+  #[wan(value="Rill")]
+  Rill,
+
+  #[wan(value="Ruby")]
+  Ruby,
+
+  #[wan(value="Rust")]
+  Rust,
+
+  #[wan(value="Scala")]
+  Scala,
+
+  #[wan(value="SQL")]
+  SQL,
+
+  #[wan(value="Swift")]
+  Swift,
+
+  #[wan(value="Vim script")]
+  VimScript,
+
+  Unknown(String),
 }
-
-enum_str!(Language {
-  BashScript: "Bash script",
-  C: "C",
-  Csharp: "C#",
-  Cplusplus: "C++",
-  CoffeeScript: "CoffeeScript",
-  CPP: "CPP",
-  D: "D",
-  Elixir: "Elixir",
-  Erlang: "Erlang",
-  Go: "Go",
-  Groovy: "Groovy",
-  Haskell: "Haskell",
-  Java: "Java",
-  JavaScript: "JavaScript",
-  LazyK: "Lazy K",
-  Lisp: "Lisp",
-  Lua: "Lua",
-  OCaml: "OCaml",
-  Pascal: "Pascal",
-  Perl: "Perl",
-  PHP: "PHP",
-  Python: "Python",
-  Rill: "Rill",
-  Ruby: "Ruby",
-  Rust: "Rust",
-  Scala: "Scala",
-  SQL: "SQL",
-  Swift: "Swift",
-  VimScript: "Vim script",
-});
 
 impl Language {
   pub fn from_extension(ext: &str) -> ::Result<Language> {

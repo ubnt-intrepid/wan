@@ -1,0 +1,12 @@
+[package]
+name = "wan-derive"
+version = "0.0.0"
+authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
+
+[lib]
+path = "lib.rs"
+proc-macro = true
+
+[dependencies]
+syn = "*"
+quote = "*"

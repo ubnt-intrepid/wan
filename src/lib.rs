@@ -12,6 +12,8 @@ extern crate serde_derive;
 extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate wan_derive;
 
 pub mod app;
 pub mod compile;
