@@ -111,7 +111,7 @@ impl Language {
       "hs" => Ok(Language::Haskell),
       "java" => Ok(Language::Java),
       "js" => Ok(Language::JavaScript),
-      "lazyk" => Ok(Language::LazyK),
+      "lazy" => Ok(Language::LazyK),
       "lisp" => Ok(Language::Lisp),
       "lua" => Ok(Language::Lua),
       "ml" => Ok(Language::OCaml),
@@ -139,9 +139,29 @@ lazy_static!{
     mapping.insert(Language::Csharp, "mono-head");
     mapping.insert(Language::Cplusplus, "gcc-head");
     mapping.insert(Language::CoffeeScript, "coffeescript-head");
+    mapping.insert(Language::CPP, "gcc-head-pp");
+    mapping.insert(Language::D, "ldc-head");
+    mapping.insert(Language::Elixir, "elixir-head");
+    mapping.insert(Language::Erlang, "erlang-head");
+    mapping.insert(Language::Groovy, "groovy-head");
+    mapping.insert(Language::Haskell, "ghc-head");
+    mapping.insert(Language::Java, "openjdk-head");
+    mapping.insert(Language::JavaScript, "nodejs-head");
+    mapping.insert(Language::LazyK, "lazyk");
+    mapping.insert(Language::Lisp, "clisp-2.49");
+    mapping.insert(Language::Lua, "lua-5.3.4");
     mapping.insert(Language::OCaml, "ocaml-head");
+    mapping.insert(Language::Pascal, "fpc-head");
+    mapping.insert(Language::Perl, "perl-head");
+    mapping.insert(Language::PHP, "php-head");
+    mapping.insert(Language::Python, "cpython-head");
+    mapping.insert(Language::Rill, "rill-head");
+    mapping.insert(Language::Ruby, "ruby-head");
     mapping.insert(Language::Rust, "rust-head");
-    // omit...
+    mapping.insert(Language::Scala, "scala-head");
+    mapping.insert(Language::SQL, "sqlite-head");
+    mapping.insert(Language::Swift, "swift-head");
+    mapping.insert(Language::VimScript, "vim-head");
     mapping
   };
 }
