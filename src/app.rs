@@ -1,5 +1,7 @@
+use std::borrow::Borrow;
 use std::fs::File;
 use std::io::{self, Read};
+use std::path::PathBuf;
 use clap;
 use shlex;
 use regex::Regex;
@@ -147,28 +149,42 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
   }
 }
 
+impl<'a> RunApp<'a> {
+  fn read_code(&self) -> ::Result<String> {
+    let mut code = String::new();
+    if self.filename != "-" {
+      File::open(self.filename)?
+        .read_to_string(&mut code)?;
+    } else {
+      io::stdin().read_to_string(&mut code)?;
+    }
+    Ok(code)
+  }
+
+  fn guess_compiler(&self) -> Option<String> {
+    self.compiler
+      .or_else(|| if self.filename != "-" {
+        PathBuf::from(self.filename)
+          .extension()
+          .map(|ext| ext.to_string_lossy())
+          .and_then(|ext| list::Language::from_extension(ext.borrow()).ok())
+          .and_then(|ref lang| list::get_default_compiler(lang))
+      } else {
+        None
+      })
+      .map(ToOwned::to_owned)
+  }
+}
+
 impl<'a> Run for RunApp<'a> {
   type Err = ::Error;
 
   fn run(self) -> Result<i32, Self::Err> {
-    let mut code = String::new();
-    let mut lang = None;
-    if self.filename != "-" {
-      File::open(self.filename)?
-        .read_to_string(&mut code)?;
-      use std::path::PathBuf;
-      use std::borrow::Borrow;
-      lang = PathBuf::from(self.filename)
-        .extension()
-        .and_then(|ext| list::Language::from_extension(ext.to_string_lossy().borrow()).ok());
-    } else {
-      io::stdin().read_to_string(&mut code)?;
-    }
+    let code = self.read_code()?;
+    let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
-    let compiler = self.compiler.or_else(|| lang.and_then(|ref lang| list::DEFAULT_COMPILERS.get(lang).map(|s| *s)))
-      .unwrap_or("gcc-head");
-
-    let mut parameter = compile::Parameter::new(code, compiler).save(self.permlink);
+    let mut parameter = compile::Parameter::new(code, compiler);
+    parameter = parameter.save(self.permlink);
 
     if let Some(options) = self.options {
       parameter = parameter.options(options);

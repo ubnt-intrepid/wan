@@ -132,7 +132,7 @@ impl Language {
 }
 
 lazy_static!{
-  pub static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
+  static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
     let mut mapping = HashMap::new();
     mapping.insert(Language::BashScript, "bash");
     mapping.insert(Language::C, "gcc-head-c");
@@ -144,6 +144,10 @@ lazy_static!{
     // omit...
     mapping
   };
+}
+
+pub fn get_default_compiler(lang: &Language) -> Option<&'static str> {
+  DEFAULT_COMPILERS.get(lang).map(|s| *s)
 }
 
 #[test]
