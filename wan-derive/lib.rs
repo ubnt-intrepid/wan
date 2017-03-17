@@ -143,15 +143,39 @@ impl DeriveInput {
     }
   }
 
+  fn derive_from_extension(&self) -> quote::Tokens {
+    let ident = &self.ident;
+    let body = self.variants.iter().map(|v| {
+      let variant = &v.ident;
+      let extensions = &v.extensions;
+      quote!{
+        #(#extensions)|* => Ok(#ident :: #variant)
+      }
+    });
+    quote!{
+      impl FromExtension for Language {
+        type Err = ::Error;
+        fn from_extension(ext: &str) -> Result<Self> {
+          match ext {
+            #( #body, )*
+            ext => Err(format!("Failed to guess filetype: '{}' is unknown extension", ext).into()),
+          }
+        }
+      }
+    }
+  }
+
   fn derive(&self) -> quote::Tokens {
     let display = self.derive_display();
     let from_str = self.derive_from_str();
     let serde = self.derive_serde();
     let get_default_compiler = self.derive_get_default_compiler();
+    let from_extension = self.derive_from_extension();
     quote! {
       #display
       #from_str
       #serde
+      #from_extension
       #get_default_compiler
     }
   }
@@ -161,57 +185,56 @@ struct Variant {
   ident: syn::Ident,
   value: String,
   compiler: String,
+  extensions: Vec<String>,
 }
 
 impl Variant {
   fn new(variant: syn::Variant) -> Result<Option<Variant>, String> {
     let mut value = None;
     let mut compiler = None;
+    let mut ext = None;
 
     for attr in variant.attrs {
-      let attr: syn::Attribute = attr;
-      if attr.name() != "wan" {
-        continue;
+      let (ident, items) = match attr.value {
+        syn::MetaItem::List(ident, items) => (ident, items),
+        val => return Err(format!("invalid form in attribute: {:?}", val)),
+      };
+
+      if ident.as_ref() != "wan" {
+        return Err(format!("'{}' is invalid attribute name", ident.as_ref()));
       }
 
-      match attr.value {
-        syn::MetaItem::List(ident, items) => {
-          match ident.as_ref() {
-            "wan" => {
-              for item in items {
-                match item {
-                  syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(ident)) => {
-                    if ident.as_ref() == "ignore" {
-                      return Ok(None);
-                    }
-                  }
-                  syn::NestedMetaItem::MetaItem(syn::MetaItem::NameValue(ident,
-                                                                         syn::Lit::Str(s, _))) => {
-                    match ident.as_ref() {
-                      "value" => value = Some(s.to_owned()),
-                      "compiler" => compiler = Some(s.to_owned()),
-                      ident => return Err(format!("'#[wan({})]' is invalid attribute item", ident)),
-                    }
-                  }
-                  val => return Err(format!("invalid form in attribute: {:?}", val)),
-                }
-              }
+      for item in items {
+        match item {
+          syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(ident)) => {
+            if ident.as_ref() == "ignore" {
+              return Ok(None);
             }
-            ident => return Err(format!("'{}' is invalid attribute name", ident)),
           }
+          syn::NestedMetaItem::MetaItem(syn::MetaItem::NameValue(ident, syn::Lit::Str(s, _))) => {
+            match ident.as_ref() {
+              "value" => value = Some(s.to_owned()),
+              "compiler" => compiler = Some(s.to_owned()),
+              "ext" => ext = Some(s.to_owned()),
+              ident => return Err(format!("'#[wan({})]' is invalid attribute item", ident)),
+            }
+          }
+          val => return Err(format!("invalid form in attribute: {:?}", val)),
         }
-        val => return Err(format!("invalid form in attribute: {:?}", val)),
       }
     }
+
     let ident = variant.ident;
     let value = value.unwrap_or_else(|| ident.as_ref().to_owned());
-
     let compiler = compiler.unwrap_or_else(|| format!("{}-head", ident.as_ref().to_lowercase()));
+    let ext = ext.unwrap_or_default();
+    let extensions = ext.split(",").map(ToOwned::to_owned).collect();
 
     Ok(Some(Variant {
       ident: ident,
       value: value,
       compiler: compiler,
+      extensions: extensions,
     }))
   }
 }

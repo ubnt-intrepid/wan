@@ -19,93 +19,67 @@ pub trait GetDefaultCompiler {
 
 #[derive(Debug, Clone, PartialEq, WanLanguageList)]
 pub enum Language {
-  #[wan(value="Bash script", compiler="bash")]
+  #[wan(value="Bash script", compiler="bash", ext="sh")]
   BashScript,
-  #[wan(compiler="gcc-head-c")]
+  #[wan(compiler="gcc-head-c", ext="c,h")]
   C,
-  #[wan(value="C#", compiler="mono-head")]
+  #[wan(value="C#", compiler="mono-head", ext="cs")]
   Csharp,
-  #[wan(value="C++", compiler="gcc-head")]
+  #[wan(value="C++", compiler="gcc-head", ext="cpp,cxx,cc,hpp,hxx,hh")]
   Cplusplus,
+  #[wan(ext="coffee")]
   CoffeeScript,
   #[wan(compiler="gcc-head-pp")]
   CPP,
-  #[wan(compiler="ldc-head")]
+  #[wan(compiler="ldc-head", ext="d")]
   D,
+  #[wan(ext="ex,exs")]
   Elixir,
+  #[wan(ext="erl")]
   Erlang,
+  #[wan(ext="go")]
   Go,
+  #[wan(ext="groovy")]
   Groovy,
-  #[wan(compiler="ghc-head")]
+  #[wan(compiler="ghc-head", ext="hs")]
   Haskell,
-  #[wan(compiler="openjdk-head")]
+  #[wan(compiler="openjdk-head", ext="java")]
   Java,
-  #[wan(compiler="nodejs-head")]
+  #[wan(compiler="nodejs-head", ext="js")]
   JavaScript,
-  #[wan(value="Lazy K", compiler="lazyk")]
+  #[wan(value="Lazy K", compiler="lazyk", ext="lazy")]
   LazyK,
-  #[wan(compiler="clisp-2.49")]
+  #[wan(compiler="clisp-2.49", ext="lisp")]
   Lisp,
-  #[wan(compiler="lua-5.3.4")]
+  #[wan(compiler="lua-5.3.4", ext="lua")]
   Lua,
+  #[wan(ext="ml")]
   OCaml,
-  #[wan(compiler="fpc-head")]
+  #[wan(compiler="fpc-head", ext="pas")]
   Pascal,
+  #[wan(ext="pl")]
   Perl,
+  #[wan(ext="php")]
   PHP,
-  #[wan(compiler="cpython-head")]
+  #[wan(compiler="cpython-head", ext="py")]
   Python,
+  #[wan(ext="rill")]
   Rill,
+  #[wan(ext="rb")]
   Ruby,
+  #[wan(ext="rs")]
   Rust,
+  #[wan(ext="scala")]
   Scala,
-  #[wan(compiler="sqlite-head")]
+  #[wan(compiler="sqlite-head", ext="sql")]
   SQL,
+  #[wan(ext="swift")]
   Swift,
-  #[wan(value="Vim script", compiler="vim-head")]
+  #[wan(value="Vim script", compiler="vim-head", ext="vim")]
   VimScript,
-  
   #[wan(ignore)]
   Unknown(String),
 }
-
-impl FromExtension for Language {
-  type Err = ::Error;
-  fn from_extension(ext: &str) -> Result<Self> {
-    match ext {
-      "sh" => Ok(Language::BashScript),
-      "c" | "h" => Ok(Language::C),
-      "cs" => Ok(Language::Csharp),
-      "cpp" | "cxx" | "cc" | "hpp" | "hxx" | "hh" => Ok(Language::Cplusplus),
-      "coffee" => Ok(Language::CoffeeScript),
-      "d" => Ok(Language::D),
-      "ex" | "exs" => Ok(Language::Elixir),
-      "erl" => Ok(Language::Erlang),
-      "go" => Ok(Language::Go),
-      "groovy" => Ok(Language::Groovy),
-      "hs" => Ok(Language::Haskell),
-      "java" => Ok(Language::Java),
-      "js" => Ok(Language::JavaScript),
-      "lazy" => Ok(Language::LazyK),
-      "lisp" => Ok(Language::Lisp),
-      "lua" => Ok(Language::Lua),
-      "ml" => Ok(Language::OCaml),
-      "pas" => Ok(Language::Pascal),
-      "pl" => Ok(Language::Perl),
-      "php" => Ok(Language::PHP),
-      "py" => Ok(Language::Python),
-      "rill" => Ok(Language::Rill),
-      "rb" => Ok(Language::Ruby),
-      "rs" => Ok(Language::Rust),
-      "scala" => Ok(Language::Scala),
-      "sql" => Ok(Language::SQL),
-      "swift" => Ok(Language::Swift),
-      "vim" => Ok(Language::VimScript),
-      ext => Err(format!("Failed to guess filetype: '{}' is unknown extension", ext).into()),
-    }
-  }
-}
-
 
 #[test]
 fn test_extension() {
