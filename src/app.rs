@@ -184,25 +184,26 @@ impl<'a> Run for RunApp<'a> {
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
     let mut parameter = wandbox::CompileParameter::new(code, compiler);
-    parameter = parameter.save(self.permlink);
+    parameter.save(self.permlink);
 
     if let Some(options) = self.options {
-      parameter = parameter.options(options);
+      parameter.options(options);
     }
 
     if let Some(args) = self.compiler_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.compiler_option(args);
+      parameter.compiler_option(args);
     }
 
     if let Some(args) = self.runtime_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.runtime_option(args);
+      parameter.runtime_option(args);
     }
 
     if let Some(files) = self.files {
-      parameter = parameter.codes(files.map(|ref s| wandbox::Code::new(s)));
+      parameter.codes(files.map(|ref s| wandbox::Code::new(s)));
     }
 
-    let result = parameter.request()?;
+    let wandbox = Wandbox::new();
+    let result = wandbox.compile(parameter)?;
     util::dump_to_json(&result)?;
 
     Ok(result.status())

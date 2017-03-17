@@ -1,4 +1,3 @@
-use super::http;
 use util;
 use std::path::Path;
 
@@ -62,20 +61,16 @@ impl Parameter {
     ret
   }
 
-  pub fn options<S: Into<String>>(mut self, options: S) -> Self {
+  pub fn options<S: Into<String>>(&mut self, options: S) -> &mut Self {
     self.options = Some(options.into());
     self
   }
 
-  pub fn code(mut self, code: Code) -> Self {
-    if self.codes.is_none() {
-      self.codes = Some(Vec::new());
-    }
-    self.codes.as_mut().unwrap().push(code);
-    self
+  pub fn code(&mut self, code: Code) -> &mut Self {
+    self.codes(vec![code])
   }
 
-  pub fn codes<I>(mut self, codes: I) -> Self
+  pub fn codes<I>(&mut self, codes: I) -> &mut Self
     where I: IntoIterator<Item = Code>
   {
     if self.codes.is_none() {
@@ -85,12 +80,12 @@ impl Parameter {
     self
   }
 
-  pub fn stdin<S: Into<String>>(mut self, stdin: S) -> Self {
+  pub fn stdin<S: Into<String>>(&mut self, stdin: S) -> &mut Self {
     self.stdin = Some(stdin.into());
     self
   }
 
-  pub fn compiler_option<I, S>(mut self, options: I) -> Self
+  pub fn compiler_option<I, S>(&mut self, options: I) -> &mut Self
     where I: IntoIterator<Item = S>,
           S: AsRef<str>
   {
@@ -98,7 +93,7 @@ impl Parameter {
     self
   }
 
-  pub fn runtime_option<I, S>(mut self, options: I) -> Self
+  pub fn runtime_option<I, S>(&mut self, options: I) -> &mut Self
     where I: IntoIterator<Item = S>,
           S: AsRef<str>
   {
@@ -106,13 +101,9 @@ impl Parameter {
     self
   }
 
-  pub fn save(mut self, save: bool) -> Self {
+  pub fn save(&mut self, save: bool) -> &mut Self {
     self.save = Some(save);
     self
-  }
-
-  pub fn request(self) -> ::Result<Result> {
-    http::post("http://melpon.org/wandbox/api/compile.json", self)
   }
 }
 
