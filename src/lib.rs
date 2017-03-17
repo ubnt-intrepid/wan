@@ -12,11 +12,8 @@ extern crate error_chain;
 extern crate wan_derive;
 
 pub mod app;
-pub mod compile;
-pub mod list;
-pub mod http;
+pub mod wandbox;
 pub mod util;
-pub mod permlink;
 
 error_chain! {
   foreign_links {

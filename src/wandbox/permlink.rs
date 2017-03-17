@@ -1,5 +1,5 @@
-use compile;
-use http;
+use super::compile;
+use super::http;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Result {

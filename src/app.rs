@@ -6,11 +6,8 @@ use clap;
 use shlex;
 use regex::Regex;
 
-use compile;
-use list;
+use wandbox::{self, Wandbox};
 use util;
-use permlink;
-
 
 pub trait MakeApp {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b>;
@@ -86,7 +83,8 @@ impl<'a> Run for ListApp<'a> {
       None => None,
     };
 
-    let info_list = list::get_compiler_info()?;
+    let wandbox = Wandbox::new();
+    let info_list = wandbox.get_compiler_info()?;
     let info_list = info_list.into_iter()
       .filter(move |info| {
         ptn_name.as_ref()
@@ -162,14 +160,14 @@ impl<'a> RunApp<'a> {
   }
 
   fn guess_compiler(&self) -> Option<String> {
-    use list::FromExtension;
-    use list::GetDefaultCompiler;
+    use wandbox::FromExtension;
+    use wandbox::GetDefaultCompiler;
     self.compiler
       .or_else(|| if self.filename != "-" {
         PathBuf::from(self.filename)
           .extension()
           .map(|ext| ext.to_string_lossy())
-          .and_then(|ext| list::Language::from_extension(ext.borrow()).ok())
+          .and_then(|ext| wandbox::Language::from_extension(ext.borrow()).ok())
           .and_then(|ref lang| lang.get_default_compiler())
       } else {
         None
@@ -185,7 +183,7 @@ impl<'a> Run for RunApp<'a> {
     let code = self.read_code()?;
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
-    let mut parameter = compile::Parameter::new(code, compiler);
+    let mut parameter = wandbox::CompileParameter::new(code, compiler);
     parameter = parameter.save(self.permlink);
 
     if let Some(options) = self.options {
@@ -201,7 +199,7 @@ impl<'a> Run for RunApp<'a> {
     }
 
     if let Some(files) = self.files {
-      parameter = parameter.codes(files.map(|ref s| compile::Code::new(s)));
+      parameter = parameter.codes(files.map(|ref s| wandbox::Code::new(s)));
     }
 
     let result = parameter.request()?;
@@ -233,7 +231,8 @@ impl<'a> Run for PermlinkApp<'a> {
   type Err = ::Error;
 
   fn run(self) -> Result<i32, Self::Err> {
-    let result = permlink::get_from_permlink(&self.link)?;
+    let wandbox = Wandbox::new();
+    let result = wandbox.get_from_permlink(&self.link)?;
     util::dump_to_json(&result)?;
     Ok(0)
   }

@@ -1,4 +1,4 @@
-use http;
+use super::http;
 use util;
 use std::path::Path;
 

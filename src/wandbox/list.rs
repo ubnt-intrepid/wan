@@ -4,7 +4,7 @@ use serde;
 use serde_json;
 use Result;
 use util::Either;
-use http;
+use super::http;
 
 
 pub trait FromExtension: Sized {
