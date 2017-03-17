@@ -7,100 +7,60 @@ use Result;
 use util::Either;
 use http;
 
+
+pub trait FromExtension: Sized {
+  type Err;
+  fn from_extension(ext: &str) -> ::std::result::Result<Self, Self::Err>;
+}
+
+pub trait GetDefaultCompiler {
+  fn get_default_compiler(&self) -> Option<&'static str>;
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, EnumStr)]
 pub enum Language {
   #[wan(value="Bash script")]
   BashScript,
-  
-  #[wan(value="C")]
   C,
-
   #[wan(value="C#")]
   Csharp,
-
   #[wan(value="C++")]
   Cplusplus,
-
-  #[wan(value="CoffeeScript")]
   CoffeeScript,
-
-  #[wan(value="CPP")]
   CPP,
-
-  #[wan(value="D")]
   D,
-
-  #[wan(value="Elixir")] 
   Elixir,
-
-  #[wan(value="Erlang")]
   Erlang,
-
-  #[wan(value="Go")]
   Go,
-
-  #[wan(value="Groovy")]
   Groovy,
-
-  #[wan(value="Haskell")]
   Haskell,
-
-  #[wan(value="Java")]
   Java,
-
-  #[wan(value="JavaScript")]
   JavaScript,
-
   #[wan(value="Lazy K")]
   LazyK,
-
-  #[wan(value="Lisp")]
   Lisp,
-
-  #[wan(value="Lua")]
   Lua,
-
-  #[wan(value="OCaml")]
   OCaml,
-
-  #[wan(value="Pascal")]
   Pascal,
-
-  #[wan(value="Perl")]
   Perl,
-
-  #[wan(value="PHP")]
   PHP,
-
-  #[wan(value="Python")]
   Python,
-
-  #[wan(value="Rill")]
   Rill,
-
-  #[wan(value="Ruby")]
   Ruby,
-
-  #[wan(value="Rust")]
   Rust,
-
-  #[wan(value="Scala")]
   Scala,
-
-  #[wan(value="SQL")]
   SQL,
-
-  #[wan(value="Swift")]
   Swift,
-
   #[wan(value="Vim script")]
   VimScript,
-
+  #[wan(ignore)]
   Unknown(String),
 }
 
-impl Language {
-  pub fn from_extension(ext: &str) -> ::Result<Language> {
+impl FromExtension for Language {
+  type Err = ::Error;
+  fn from_extension(ext: &str) -> Result<Self> {
     match ext {
       "sh" => Ok(Language::BashScript),
       "c" | "h" => Ok(Language::C),
@@ -135,44 +95,45 @@ impl Language {
   }
 }
 
-lazy_static!{
-  static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
-    let mut mapping = HashMap::new();
-    mapping.insert(Language::BashScript, "bash");
-    mapping.insert(Language::C, "gcc-head-c");
-    mapping.insert(Language::Csharp, "mono-head");
-    mapping.insert(Language::Cplusplus, "gcc-head");
-    mapping.insert(Language::CoffeeScript, "coffeescript-head");
-    mapping.insert(Language::CPP, "gcc-head-pp");
-    mapping.insert(Language::D, "ldc-head");
-    mapping.insert(Language::Elixir, "elixir-head");
-    mapping.insert(Language::Erlang, "erlang-head");
-    mapping.insert(Language::Go, "go-head");
-    mapping.insert(Language::Groovy, "groovy-head");
-    mapping.insert(Language::Haskell, "ghc-head");
-    mapping.insert(Language::Java, "openjdk-head");
-    mapping.insert(Language::JavaScript, "nodejs-head");
-    mapping.insert(Language::LazyK, "lazyk");
-    mapping.insert(Language::Lisp, "clisp-2.49");
-    mapping.insert(Language::Lua, "lua-5.3.4");
-    mapping.insert(Language::OCaml, "ocaml-head");
-    mapping.insert(Language::Pascal, "fpc-head");
-    mapping.insert(Language::Perl, "perl-head");
-    mapping.insert(Language::PHP, "php-head");
-    mapping.insert(Language::Python, "cpython-head");
-    mapping.insert(Language::Rill, "rill-head");
-    mapping.insert(Language::Ruby, "ruby-head");
-    mapping.insert(Language::Rust, "rust-head");
-    mapping.insert(Language::Scala, "scala-head");
-    mapping.insert(Language::SQL, "sqlite-head");
-    mapping.insert(Language::Swift, "swift-head");
-    mapping.insert(Language::VimScript, "vim-head");
-    mapping
-  };
-}
-
-pub fn get_default_compiler(lang: &Language) -> Option<&'static str> {
-  DEFAULT_COMPILERS.get(lang).map(|s| *s)
+impl GetDefaultCompiler for Language {
+  fn get_default_compiler(&self) -> Option<&'static str> {
+    lazy_static!{
+      static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
+        let mut mapping = HashMap::new();
+        mapping.insert(Language::BashScript, "bash");
+        mapping.insert(Language::C, "gcc-head-c");
+        mapping.insert(Language::Csharp, "mono-head");
+        mapping.insert(Language::Cplusplus, "gcc-head");
+        mapping.insert(Language::CoffeeScript, "coffeescript-head");
+        mapping.insert(Language::CPP, "gcc-head-pp");
+        mapping.insert(Language::D, "ldc-head");
+        mapping.insert(Language::Elixir, "elixir-head");
+        mapping.insert(Language::Erlang, "erlang-head");
+        mapping.insert(Language::Go, "go-head");
+        mapping.insert(Language::Groovy, "groovy-head");
+        mapping.insert(Language::Haskell, "ghc-head");
+        mapping.insert(Language::Java, "openjdk-head");
+        mapping.insert(Language::JavaScript, "nodejs-head");
+        mapping.insert(Language::LazyK, "lazyk");
+        mapping.insert(Language::Lisp, "clisp-2.49");
+        mapping.insert(Language::Lua, "lua-5.3.4");
+        mapping.insert(Language::OCaml, "ocaml-head");
+        mapping.insert(Language::Pascal, "fpc-head");
+        mapping.insert(Language::Perl, "perl-head");
+        mapping.insert(Language::PHP, "php-head");
+        mapping.insert(Language::Python, "cpython-head");
+        mapping.insert(Language::Rill, "rill-head");
+        mapping.insert(Language::Ruby, "ruby-head");
+        mapping.insert(Language::Rust, "rust-head");
+        mapping.insert(Language::Scala, "scala-head");
+        mapping.insert(Language::SQL, "sqlite-head");
+        mapping.insert(Language::Swift, "swift-head");
+        mapping.insert(Language::VimScript, "vim-head");
+        mapping
+      };
+    }
+    DEFAULT_COMPILERS.get(self).map(|s| *s)
+  }
 }
 
 #[test]

@@ -142,6 +142,7 @@ struct Variant {
 impl Variant {
   fn new(variant: syn::Variant) -> Result<Option<Variant>, String> {
     let mut value = None;
+
     for attr in variant.attrs {
       let attr: syn::Attribute = attr;
       if attr.name() != "wan" {
@@ -154,6 +155,11 @@ impl Variant {
             "wan" => {
               for item in items {
                 match item {
+                  syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(ident)) => {
+                    if ident.as_ref() == "ignore" {
+                      return Ok(None);
+                    }
+                  }
                   syn::NestedMetaItem::MetaItem(syn::MetaItem::NameValue(ident,
                                                                          syn::Lit::Str(s, _))) => {
                     match ident.as_ref() {
@@ -171,14 +177,12 @@ impl Variant {
         val => return Err(format!("invalid form in attribute: {:?}", val)),
       }
     }
-
     let ident = variant.ident;
+    let value = value.unwrap_or(ident.as_ref().to_owned());
 
-    Ok(value.map(move |value| {
-      Variant {
-        ident: ident,
-        value: value,
-      }
+    Ok(Some(Variant {
+      ident: ident,
+      value: value,
     }))
   }
 }
