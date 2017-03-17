@@ -5,8 +5,8 @@ extern crate syn;
 #[macro_use]
 extern crate quote;
 
-#[proc_macro_derive(EnumStr, attributes(wan))]
-pub fn derive_language(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_derive(WanLanguageList, attributes(wan))]
+pub fn derive_language_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let ast = syn::parse_derive_input(&input.to_string()).unwrap();
   let gen = DeriveInput::new(ast).unwrap();
   gen.derive().parse().unwrap()
@@ -122,14 +122,37 @@ impl DeriveInput {
     }
   }
 
+  fn derive_get_default_compiler(&self) -> quote::Tokens {
+    let ident = &self.ident;
+    let body = self.variants.iter().map(|v| {
+      let variant = &v.ident;
+      let compiler = &v.compiler;
+      quote!{
+        #ident :: #variant => Some(#compiler)
+      }
+    });
+    quote!{
+      impl GetDefaultCompiler for #ident {
+        fn get_default_compiler(&self) -> Option<&'static str> {
+          match *self {
+            #( #body, )*
+            _ => None,
+          }
+        }
+      }
+    }
+  }
+
   fn derive(&self) -> quote::Tokens {
     let display = self.derive_display();
     let from_str = self.derive_from_str();
     let serde = self.derive_serde();
+    let get_default_compiler = self.derive_get_default_compiler();
     quote! {
       #display
       #from_str
       #serde
+      #get_default_compiler
     }
   }
 }
@@ -137,11 +160,13 @@ impl DeriveInput {
 struct Variant {
   ident: syn::Ident,
   value: String,
+  compiler: String,
 }
 
 impl Variant {
   fn new(variant: syn::Variant) -> Result<Option<Variant>, String> {
     let mut value = None;
+    let mut compiler = None;
 
     for attr in variant.attrs {
       let attr: syn::Attribute = attr;
@@ -164,6 +189,7 @@ impl Variant {
                                                                          syn::Lit::Str(s, _))) => {
                     match ident.as_ref() {
                       "value" => value = Some(s.to_owned()),
+                      "compiler" => compiler = Some(s.to_owned()),
                       ident => return Err(format!("'#[wan({})]' is invalid attribute item", ident)),
                     }
                   }
@@ -178,11 +204,14 @@ impl Variant {
       }
     }
     let ident = variant.ident;
-    let value = value.unwrap_or(ident.as_ref().to_owned());
+    let value = value.unwrap_or_else(|| ident.as_ref().to_owned());
+
+    let compiler = compiler.unwrap_or_else(|| format!("{}-head", ident.as_ref().to_lowercase()));
 
     Ok(Some(Variant {
       ident: ident,
       value: value,
+      compiler: compiler,
     }))
   }
 }

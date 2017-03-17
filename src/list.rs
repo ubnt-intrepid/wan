@@ -2,7 +2,6 @@
 use serde;
 #[cfg(test)]
 use serde_json;
-use std::collections::HashMap;
 use Result;
 use util::Either;
 use http;
@@ -18,42 +17,54 @@ pub trait GetDefaultCompiler {
 }
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumStr)]
+#[derive(Debug, Clone, PartialEq, WanLanguageList)]
 pub enum Language {
-  #[wan(value="Bash script")]
+  #[wan(value="Bash script", compiler="bash")]
   BashScript,
+  #[wan(compiler="gcc-head-c")]
   C,
-  #[wan(value="C#")]
+  #[wan(value="C#", compiler="mono-head")]
   Csharp,
-  #[wan(value="C++")]
+  #[wan(value="C++", compiler="gcc-head")]
   Cplusplus,
   CoffeeScript,
+  #[wan(compiler="gcc-head-pp")]
   CPP,
+  #[wan(compiler="ldc-head")]
   D,
   Elixir,
   Erlang,
   Go,
   Groovy,
+  #[wan(compiler="ghc-head")]
   Haskell,
+  #[wan(compiler="openjdk-head")]
   Java,
+  #[wan(compiler="nodejs-head")]
   JavaScript,
-  #[wan(value="Lazy K")]
+  #[wan(value="Lazy K", compiler="lazyk")]
   LazyK,
+  #[wan(compiler="clisp-2.49")]
   Lisp,
+  #[wan(compiler="lua-5.3.4")]
   Lua,
   OCaml,
+  #[wan(compiler="fpc-head")]
   Pascal,
   Perl,
   PHP,
+  #[wan(compiler="cpython-head")]
   Python,
   Rill,
   Ruby,
   Rust,
   Scala,
+  #[wan(compiler="sqlite-head")]
   SQL,
   Swift,
-  #[wan(value="Vim script")]
+  #[wan(value="Vim script", compiler="vim-head")]
   VimScript,
+  
   #[wan(ignore)]
   Unknown(String),
 }
@@ -95,46 +106,6 @@ impl FromExtension for Language {
   }
 }
 
-impl GetDefaultCompiler for Language {
-  fn get_default_compiler(&self) -> Option<&'static str> {
-    lazy_static!{
-      static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
-        let mut mapping = HashMap::new();
-        mapping.insert(Language::BashScript, "bash");
-        mapping.insert(Language::C, "gcc-head-c");
-        mapping.insert(Language::Csharp, "mono-head");
-        mapping.insert(Language::Cplusplus, "gcc-head");
-        mapping.insert(Language::CoffeeScript, "coffeescript-head");
-        mapping.insert(Language::CPP, "gcc-head-pp");
-        mapping.insert(Language::D, "ldc-head");
-        mapping.insert(Language::Elixir, "elixir-head");
-        mapping.insert(Language::Erlang, "erlang-head");
-        mapping.insert(Language::Go, "go-head");
-        mapping.insert(Language::Groovy, "groovy-head");
-        mapping.insert(Language::Haskell, "ghc-head");
-        mapping.insert(Language::Java, "openjdk-head");
-        mapping.insert(Language::JavaScript, "nodejs-head");
-        mapping.insert(Language::LazyK, "lazyk");
-        mapping.insert(Language::Lisp, "clisp-2.49");
-        mapping.insert(Language::Lua, "lua-5.3.4");
-        mapping.insert(Language::OCaml, "ocaml-head");
-        mapping.insert(Language::Pascal, "fpc-head");
-        mapping.insert(Language::Perl, "perl-head");
-        mapping.insert(Language::PHP, "php-head");
-        mapping.insert(Language::Python, "cpython-head");
-        mapping.insert(Language::Rill, "rill-head");
-        mapping.insert(Language::Ruby, "ruby-head");
-        mapping.insert(Language::Rust, "rust-head");
-        mapping.insert(Language::Scala, "scala-head");
-        mapping.insert(Language::SQL, "sqlite-head");
-        mapping.insert(Language::Swift, "swift-head");
-        mapping.insert(Language::VimScript, "vim-head");
-        mapping
-      };
-    }
-    DEFAULT_COMPILERS.get(self).map(|s| *s)
-  }
-}
 
 #[test]
 fn test_extension() {
