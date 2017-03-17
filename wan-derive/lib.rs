@@ -8,8 +8,8 @@ extern crate quote;
 #[proc_macro_derive(WanLanguageList, attributes(wan))]
 pub fn derive_language_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let ast = syn::parse_derive_input(&input.to_string()).unwrap();
-  let gen = DeriveInput::new(ast).unwrap();
-  gen.derive().parse().unwrap()
+  let gen = DeriveInput::new(ast).unwrap().derive();
+  gen.parse().unwrap()
 }
 
 struct DeriveInput {
@@ -17,23 +17,19 @@ struct DeriveInput {
   variants: Vec<Variant>,
 }
 
-fn parse_variants(variants: Vec<syn::Variant>) -> Result<Vec<Variant>, String> {
-  let mut ret = Vec::new();
-  for variant in variants {
-    if let Some(v) = Variant::new(variant)? {
-      ret.push(v);
-    }
-  }
-  Ok(ret)
-}
-
 impl DeriveInput {
   fn new(ast: syn::DeriveInput) -> Result<DeriveInput, String> {
     match ast.body {
-      syn::Body::Enum(variants) => {
+      syn::Body::Enum(_variants) => {
+        let mut variants = Vec::new();
+        for variant in _variants {
+          if let Some(v) = Variant::new(variant)? {
+            variants.push(v);
+          }
+        }
         Ok(DeriveInput {
           ident: ast.ident,
-          variants: parse_variants(variants)?,
+          variants: variants,
         })
       }
       _ => Err("#[derive(EnumStr)] is only supported for enum".into()),
