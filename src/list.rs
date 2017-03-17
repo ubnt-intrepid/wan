@@ -75,6 +75,7 @@ enum_str!(Language {
   D: "D",
   Elixir: "Elixir",
   Erlang: "Erlang",
+  Go: "Go",
   Groovy: "Groovy",
   Haskell: "Haskell",
   Java: "Java",
@@ -107,6 +108,7 @@ impl Language {
       "d" => Ok(Language::D),
       "ex" | "exs" => Ok(Language::Elixir),
       "erl" => Ok(Language::Erlang),
+      "go" => Ok(Language::Go),
       "groovy" => Ok(Language::Groovy),
       "hs" => Ok(Language::Haskell),
       "java" => Ok(Language::Java),
@@ -143,6 +145,7 @@ lazy_static!{
     mapping.insert(Language::D, "ldc-head");
     mapping.insert(Language::Elixir, "elixir-head");
     mapping.insert(Language::Erlang, "erlang-head");
+    mapping.insert(Language::Go, "go-head");
     mapping.insert(Language::Groovy, "groovy-head");
     mapping.insert(Language::Haskell, "ghc-head");
     mapping.insert(Language::Java, "openjdk-head");
