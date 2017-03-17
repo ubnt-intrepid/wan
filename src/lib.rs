@@ -3,7 +3,6 @@ extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate shlex;
-#[macro_use]
 extern crate clap;
 #[macro_use]
 extern crate log;
@@ -11,6 +10,8 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
+#[macro_use]
+extern crate lazy_static;
 
 pub mod app;
 pub mod compile;

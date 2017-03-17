@@ -2,13 +2,14 @@
 use serde;
 #[cfg(test)]
 use serde_json;
+use std::collections::HashMap;
 use Result;
 use util::Either;
 use http;
 
 macro_rules! enum_str {
   ($name:ident { $($variant:ident : $value:expr, )* }) => {
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     pub enum $name {
       $($variant,)*
       Unknown(String),
@@ -94,6 +95,86 @@ enum_str!(Language {
   Swift: "Swift",
   VimScript: "Vim script",
 });
+
+impl Language {
+  pub fn from_extension(ext: &str) -> ::Result<Language> {
+    match ext {
+      "sh" => Ok(Language::BashScript),
+      "c" | "h" => Ok(Language::C),
+      "cs" => Ok(Language::Csharp),
+      "cpp" | "cxx" | "cc" | "hpp" | "hxx" | "hh" => Ok(Language::Cplusplus),
+      "coffee" => Ok(Language::CoffeeScript),
+      "d" => Ok(Language::D),
+      "ex" | "exs" => Ok(Language::Elixir),
+      "erl" => Ok(Language::Erlang),
+      "groovy" => Ok(Language::Groovy),
+      "hs" => Ok(Language::Haskell),
+      "java" => Ok(Language::Java),
+      "js" => Ok(Language::JavaScript),
+      "lazy" => Ok(Language::LazyK),
+      "lisp" => Ok(Language::Lisp),
+      "lua" => Ok(Language::Lua),
+      "ml" => Ok(Language::OCaml),
+      "pas" => Ok(Language::Pascal),
+      "pl" => Ok(Language::Perl),
+      "php" => Ok(Language::PHP),
+      "py" => Ok(Language::Python),
+      "rill" => Ok(Language::Rill),
+      "rb" => Ok(Language::Ruby),
+      "rs" => Ok(Language::Rust),
+      "scala" => Ok(Language::Scala),
+      "sql" => Ok(Language::SQL),
+      "swift" => Ok(Language::Swift),
+      "vim" => Ok(Language::VimScript),
+      ext => Err(format!("Failed to guess filetype: '{}' is unknown extension", ext).into()),
+    }
+  }
+}
+
+lazy_static!{
+  static ref DEFAULT_COMPILERS: HashMap<Language, &'static str> = {
+    let mut mapping = HashMap::new();
+    mapping.insert(Language::BashScript, "bash");
+    mapping.insert(Language::C, "gcc-head-c");
+    mapping.insert(Language::Csharp, "mono-head");
+    mapping.insert(Language::Cplusplus, "gcc-head");
+    mapping.insert(Language::CoffeeScript, "coffeescript-head");
+    mapping.insert(Language::CPP, "gcc-head-pp");
+    mapping.insert(Language::D, "ldc-head");
+    mapping.insert(Language::Elixir, "elixir-head");
+    mapping.insert(Language::Erlang, "erlang-head");
+    mapping.insert(Language::Groovy, "groovy-head");
+    mapping.insert(Language::Haskell, "ghc-head");
+    mapping.insert(Language::Java, "openjdk-head");
+    mapping.insert(Language::JavaScript, "nodejs-head");
+    mapping.insert(Language::LazyK, "lazyk");
+    mapping.insert(Language::Lisp, "clisp-2.49");
+    mapping.insert(Language::Lua, "lua-5.3.4");
+    mapping.insert(Language::OCaml, "ocaml-head");
+    mapping.insert(Language::Pascal, "fpc-head");
+    mapping.insert(Language::Perl, "perl-head");
+    mapping.insert(Language::PHP, "php-head");
+    mapping.insert(Language::Python, "cpython-head");
+    mapping.insert(Language::Rill, "rill-head");
+    mapping.insert(Language::Ruby, "ruby-head");
+    mapping.insert(Language::Rust, "rust-head");
+    mapping.insert(Language::Scala, "scala-head");
+    mapping.insert(Language::SQL, "sqlite-head");
+    mapping.insert(Language::Swift, "swift-head");
+    mapping.insert(Language::VimScript, "vim-head");
+    mapping
+  };
+}
+
+pub fn get_default_compiler(lang: &Language) -> Option<&'static str> {
+  DEFAULT_COMPILERS.get(lang).map(|s| *s)
+}
+
+#[test]
+fn test_extension() {
+  assert_eq!(Language::from_extension("rs").unwrap(), Language::Rust);
+  assert!(Language::from_extension("hoge").is_err());
+}
 
 
 #[derive(Debug, Serialize, Deserialize)]
