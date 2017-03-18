@@ -1,0 +1,27 @@
+{
+  "application" : {
+    "database": "sqlite3:db=/usr/local/kennel2/var/lib/kennel/kennel_production.sqlite;@pool_size=10",
+    "static_dir": "/usr/local/kennel2/etc/static",
+    "scheme": "http",
+    "domain": "melpon.org",
+    "map_root": "/wandbox",
+    "dispatch_root": "",
+    "cattleshed": [
+      {
+        "host" : "127.0.0.1",
+        "port" : 2012
+      }
+    ],
+    "sponsors": ""
+  },
+  "service" : {
+    "api" : "http",
+    "port": 3500
+  },
+  "gzip": {
+    "enable": false
+  },
+  "cache": {
+    "backend": "process_shared"
+  }
+}
