@@ -1,7 +1,7 @@
 {
   "application" : {
-    "database": "sqlite3:db=/usr/local/kennel2/var/lib/kennel/kennel_production.sqlite;@pool_size=10",
-    "static_dir": "/usr/local/kennel2/etc/static",
+    "database": "sqlite3:db=/usr/local/var/lib/kennel/kennel_production.sqlite;@pool_size=10",
+    "static_dir": "/usr/local/etc/static",
     "scheme": "http",
     "domain": "melpon.org",
     "map_root": "/wandbox",
