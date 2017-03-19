@@ -87,7 +87,6 @@ COPY supervisord.conf   /etc/supervisord.conf
 EXPOSE 3500
 
 RUN useradd -ms /bin/bash vagrant
-RUN useradd -ms /bin/bash jail
 
 RUN mkdir -p /var/lib/kennel
 RUN touch /var/lib/kennel/kennel_production.sqlite
@@ -95,6 +94,10 @@ RUN chown -R vagrant:vagrant /var/lib/kennel
 
 RUN mkdir -p /var/log/wandbox/ran
 RUN chown -R vagrant:vagrant /var/log/wandbox/ran
+
+RUN mkdir -p /home/jail
+RUN chown -R vagrant:vagrant /home/jail
+RUN chmod u+rwx /home/jail
 
 # Run services
 CMD [ "/usr/bin/supervisord" ]
