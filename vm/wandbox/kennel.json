@@ -4,11 +4,11 @@
     "static_dir": "/usr/local/etc/static",
     "scheme": "http",
     "domain": "melpon.org",
-    "map_root": "/wandbox",
+    "map_root": "",
     "dispatch_root": "",
     "cattleshed": [
       {
-        "host" : "cattleshed",
+        "host" : "127.0.0.1",
         "port" : 2012
       }
     ],

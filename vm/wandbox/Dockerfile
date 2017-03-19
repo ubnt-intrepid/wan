@@ -10,6 +10,9 @@ RUN apt-get update && \
       g++ \
       gcc \
       git \
+      libboost-dev \
+      libboost-program-options-dev \
+      libboost-system-dev \
       libcap-dev \
       libgcrypt11-dev \
       libicu-dev \
@@ -18,6 +21,7 @@ RUN apt-get update && \
       make \
       python \
       rsync \
+      supervisor \
       zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -53,6 +57,15 @@ RUN mkdir -p /root/build/cppdb && \
     make && \
     make install
 
+# Install cattleshed
+RUN cd /root/src/wandbox/cattleshed && \
+    autoreconf -i && \
+    ./configure \
+      --prefix=/usr/local \
+      --disable-install-setcap && \
+    make && \
+    make install
+
 # Install kennel2
 RUN cd /root/src/wandbox/kennel2 && \
     ./autogen.sh && \
@@ -65,6 +78,9 @@ RUN cd /root/src/wandbox/kennel2 && \
 
 # Overwrite configuration
 COPY kennel.json /usr/local/etc/kennel.json
+COPY cattleshed.conf   /usr/local/etc/cattleshed.conf
+COPY compilers.default /usr/local/etc/cattleshed.conf.d/compilers.default
+COPY supervisord.conf /etc/supervisord.conf
 
-# Run kennel2
-CMD [ "/usr/local/bin/kennel", "-c", "/usr/local/etc/kennel.json" ]
+# Run services
+CMD [ "/usr/bin/supervisord" ]

@@ -1,11 +1,4 @@
-﻿kennel2:
-  build: kennel2
-  links:
-    - cattleshed:cattleshed
+﻿wandbox:
+  build: wandbox
   ports:
     - "0.0.0.0:80:3500"
-
-cattleshed:
-  build: cattleshed
-  expose:
-    - "2012"
