@@ -61,8 +61,7 @@ RUN mkdir -p /root/build/cppdb && \
 RUN cd /root/src/wandbox/cattleshed && \
     autoreconf -i && \
     ./configure \
-      --prefix=/usr/local \
-      --disable-install-setcap && \
+      --prefix=/usr/local && \
     make && \
     make install
 
@@ -85,6 +84,16 @@ COPY compilers.default  /usr/local/etc/cattleshed.conf.d/compilers.default
 COPY supervisord.conf   /etc/supervisord.conf
 
 EXPOSE 3500
+
+RUN useradd -ms /bin/bash vagrant
+RUN useradd -ms /bin/bash jail
+
+RUN mkdir -p /var/lib/kennel
+RUN touch /var/lib/kennel/kennel_production.sqlite
+RUN chown -R vagrant:vagrant /var/lib/kennel
+
+RUN mkdir -p /var/log/wandbox/ran
+RUN chown -R vagrant:vagrant /var/log/wandbox/ran
 
 # Run services
 CMD [ "/usr/bin/supervisord" ]

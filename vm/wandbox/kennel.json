@@ -1,6 +1,6 @@
 {
   "application" : {
-    "database": "sqlite3:db=/usr/local/var/lib/kennel/kennel_production.sqlite;@pool_size=10",
+    "database": "sqlite3:db=/var/lib/kennel/kennel_production.sqlite;@pool_size=10",
     "static_dir": "/usr/local/etc/static",
     "scheme": "http",
     "domain": "127.0.0.1:3500",
