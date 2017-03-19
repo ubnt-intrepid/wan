@@ -82,5 +82,7 @@ COPY cattleshed.conf   /usr/local/etc/cattleshed.conf
 COPY compilers.default /usr/local/etc/cattleshed.conf.d/compilers.default
 COPY supervisord.conf /etc/supervisord.conf
 
+EXPOSE 3500
+
 # Run services
 CMD [ "/usr/bin/supervisord" ]
