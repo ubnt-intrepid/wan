@@ -76,11 +76,13 @@ RUN cd /root/src/wandbox/kennel2 && \
     make && \
     make install
 
+RUN setcap cap_sys_admin,cap_sys_chroot,cap_mknod,cap_net_admin,cap_sys_rawio,cap_sys_module=p \
+      /usr/local/bin/cattlegrid
+
 # Overwrite configuration
-COPY kennel.json /usr/local/etc/kennel.json
-COPY cattleshed.conf   /usr/local/etc/cattleshed.conf
-COPY compilers.default /usr/local/etc/cattleshed.conf.d/compilers.default
-COPY supervisord.conf /etc/supervisord.conf
+COPY kennel.json        /usr/local/etc/kennel.json
+COPY compilers.default  /usr/local/etc/cattleshed.conf.d/compilers.default
+COPY supervisord.conf   /etc/supervisord.conf
 
 EXPOSE 3500
 
