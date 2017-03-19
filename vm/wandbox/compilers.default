@@ -33,6 +33,26 @@
         "-std=c11"
       ]
     },
+    "cpp11": {
+      "conflicts": [
+        "cpp11",
+        "cpp14"
+      ],
+      "display-name": "C++11",
+      "flags": [
+        "-std=c++11"
+      ]
+    },
+    "cpp14": {
+      "conflicts": [
+        "cpp11",
+        "cpp14"
+      ],
+      "display-name": "C++14",
+      "flags": [
+        "-std=c++14"
+      ]
+    },
     "warning": {
       "display-name": "Warnings",
       "flags": [
@@ -78,6 +98,35 @@
         "/usr/bin/gcc",
         "-oprog",
         "prog.c"
+      ]
+    },
+    {
+      "name": "g++",
+      "language": "C++",
+      "output-file": "prog.cpp",
+      "compiler-option-raw": true,
+      "displayable": true,
+      "run-command": "./prog",
+      "display-compile-command": "g++ -o prog prog.cpp",
+      "display-name": "g++",
+      "version-command": [
+        "/usr/bin/g++",
+        "-dumpversion"
+      ],
+      "switches": [
+        "warning",
+        "optimize",
+        "cpp11",
+        "cpp14",
+      ],
+      "initial-checked": [
+        "warning",
+        "cpp11"
+      ],
+      "compile-command": [
+        "/usr/bin/g++",
+        "-oprog",
+        "prog.cpp"
       ]
     }
   ]
