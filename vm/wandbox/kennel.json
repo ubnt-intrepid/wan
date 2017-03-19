@@ -1,0 +1,28 @@
+{
+  "application" : {
+    "database": "sqlite3:db=/var/lib/kennel/kennel_production.sqlite;@pool_size=10",
+    "static_dir": "/usr/local/etc/static",
+    "scheme": "http",
+    "domain": "127.0.0.1:3500",
+    "map_root": "",
+    "dispatch_root": "",
+    "cattleshed": [
+      {
+        "host" : "127.0.0.1",
+        "port" : 2012
+      }
+    ],
+    "sponsors": ""
+  },
+  "service" : {
+    "api" : "http",
+    "ip": "0.0.0.0",
+    "port": 3500
+  },
+  "gzip": {
+    "enable": false
+  },
+  "cache": {
+    "backend": "process_shared"
+  }
+}
