@@ -22,6 +22,6 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision :docker do |docker|
     docker.build_image "/vagrant/wandbox", args: "-t wandbox"
-    docker.run "wandbox", args: "-p 3500:3500 -d"
+    docker.run "wandbox", args: "--privileged -p 3500:3500 -d"
   end
 end

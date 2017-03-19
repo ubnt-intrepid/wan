@@ -80,6 +80,7 @@ RUN setcap cap_sys_admin,cap_sys_chroot,cap_mknod,cap_net_admin,cap_sys_rawio,ca
 
 # Overwrite configuration
 COPY kennel.json        /usr/local/etc/kennel.json
+COPY cattleshed.conf    /usr/local/etc/cattleshed.conf
 COPY compilers.default  /usr/local/etc/cattleshed.conf.d/compilers.default
 COPY supervisord.conf   /etc/supervisord.conf
 
