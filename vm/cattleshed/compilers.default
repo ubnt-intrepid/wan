@@ -1,0 +1,84 @@
+{
+  "switches": {
+    "c89": {
+      "conflicts": [
+        "c89",
+        "c99",
+        "c11"
+      ],
+      "display-name": "C89",
+      "flags": [
+        "-std=c89"
+      ]
+    },
+    "c99": {
+      "conflicts": [
+        "c89",
+        "c99",
+        "c11"
+      ],
+      "display-name": "C99",
+      "flags": [
+        "-std=c99"
+     ]
+    },
+    "c11": {
+      "conflicts": [
+        "c89",
+        "c99",
+        "c11"
+      ],
+      "display-name": "C11",
+      "flags": [
+        "-std=c11"
+      ]
+    },
+    "warning": {
+      "display-name": "Warnings",
+      "flags": [
+        "-Wall",
+        "-Wextra"
+      ]
+    },
+    "optimize": {
+      "display-name": "Optimization",
+      "flags": [
+        "-O2",
+        "-march=native"
+      ]
+    }
+  },
+
+  "compilers": [
+    {
+      "name": "gcc",
+      "language": "C",
+      "output-file": "prog.c",
+      "compiler-option-raw": true,
+      "displayable": true,
+      "run-command": "./prog",
+      "display-compile-command": "gcc -o prog prog.c",
+      "display-name": "gcc",
+      "version-command": [
+        "/usr/bin/gcc",
+        "-dumpversion"
+      ],
+      "switches": [
+        "warning",
+        "optimize",
+        "c89",
+        "c99",
+        "c11"
+      ],
+      "initial-checked": [
+        "warning",
+        "c99"
+      ],
+      "compile-command": [
+        "/usr/bin/gcc",
+        "-oprog",
+        "prog.c"
+      ]
+    }
+  ]
+}

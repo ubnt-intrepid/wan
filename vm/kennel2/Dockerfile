@@ -56,16 +56,15 @@ RUN mkdir -p /root/build/cppdb && \
 # Install kennel2
 RUN cd /root/src/wandbox/kennel2 && \
     ./autogen.sh && \
-    cd /root/src/wandbox/kennel2 && \
     ./configure \
-      --prefix=/usr/local/kennel2 \
+      --prefix=/usr/local \
       --with-cppcms=/usr/local/cppcms \
       --with-cppdb=/usr/local/cppdb && \
     make && \
     make install
 
-ENV PATH $PATH:/usr/local/kennel2/bin
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/cppcms/lib:/usr/local/cppdb/lib:/usr/local/kennel2/lib
+# Overwrite configuration
+COPY kennel.json /usr/local/etc/kennel.json
 
 # Run kennel2
-CMD [ "kennel", "-c", "/usr/local/kennel2/etc/kennel.json" ]
+CMD [ "/usr/local/bin/kennel", "-c", "/usr/local/etc/kennel.json" ]

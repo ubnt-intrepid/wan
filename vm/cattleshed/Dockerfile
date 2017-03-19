@@ -28,13 +28,14 @@ RUN git clone --recursive https://github.com/melpon/wandbox.git /root/src/wandbo
 RUN cd /root/src/wandbox/cattleshed && \
     autoreconf -i && \
     ./configure \
-      --prefix=/usr/local/cattleshed \
+      --prefix=/usr/local \
       --disable-install-setcap && \
     make && \
     make install
 
-# Run cattleshed
-ENV PATH $PATH:/usr/local/cattleshed/bin
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/cattleshed/lib
+# Overwrite configurations
+COPY cattleshed.conf   /usr/local/etc/cattleshed.conf
+COPY compilers.default /usr/local/etc/cattleshed.conf.d/compilers.default
 
-CMD [ "cattleshed" ]
+# Run cattleshed
+CMD [ "/usr/local/bin/cattleshed" ]

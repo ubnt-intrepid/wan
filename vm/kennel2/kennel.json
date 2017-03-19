@@ -8,7 +8,7 @@
     "dispatch_root": "",
     "cattleshed": [
       {
-        "host" : "127.0.0.1",
+        "host" : "cattleshed",
         "port" : 2012
       }
     ],
