@@ -10,10 +10,7 @@ use serde_json;
 use shlex;
 use regex::Regex;
 
-use compile;
-use list;
-use permlink;
-
+use wandbox;
 use util;
 
 pub struct ListApp<'a> {
@@ -59,7 +56,7 @@ impl<'a> ListApp<'a> {
       None => None,
     };
 
-    let info_list: Vec<list::CompilerInfo> = {
+    let info_list: Vec<wandbox::CompilerInfo> = {
       let url = "http://melpon.org/wandbox/api/list.json";
       let res = hyper::Client::new().get(url).send()?;
       serde_json::from_reader(res)?
@@ -135,7 +132,7 @@ impl<'a> RunApp<'a> {
     let code = self.read_code()?;
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
-    let mut parameter = compile::Parameter::new(code, compiler);
+    let mut parameter = wandbox::Parameter::new(code, compiler);
     parameter.save_permlink(self.permlink);
 
     if let Some(options) = self.options {
@@ -163,7 +160,7 @@ impl<'a> RunApp<'a> {
     println!("{}\n", serde_json::to_string_pretty(&parameter)?);
 
     // Post compile request to Wandbox
-    let result: compile::Result = {
+    let result: wandbox::Response = {
       let url = "http://melpon.org/wandbox/api/compile.json";
       let res = hyper::Client::new().post(url)
         .header(ContentType::json())
@@ -199,14 +196,14 @@ impl<'a> RunApp<'a> {
   }
 
   fn guess_compiler(&self) -> Option<String> {
-    use list::FromExtension;
-    use list::GetDefaultCompiler;
+    use wandbox::FromExtension;
+    use wandbox::GetDefaultCompiler;
     self.compiler
       .or_else(|| if self.filename != "-" {
         PathBuf::from(self.filename)
           .extension()
           .map(|ext| ext.to_string_lossy())
-          .and_then(|ext| list::Language::from_extension(ext.borrow()).ok())
+          .and_then(|ext| wandbox::Language::from_extension(ext.borrow()).ok())
           .and_then(|ref lang| lang.get_default_compiler())
       } else {
         None
@@ -235,7 +232,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp<'a> {
 
 impl<'a> PermlinkApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
-    let result: permlink::Result = {
+    let result: wandbox::PermlinkResult = {
       let url = format!("http://melpon.org/wandbox/api/permlink/{}", self.link);
       let res = hyper::Client::new().get(&url).send()?;
       serde_json::from_reader(res)?
