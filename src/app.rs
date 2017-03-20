@@ -2,16 +2,19 @@ use std::borrow::Borrow;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
+
 use clap;
+use hyper;
+use hyper::header::ContentType;
 use serde_json;
 use shlex;
 use regex::Regex;
 
 use compile;
 use list;
-use util;
 use permlink;
 
+use util;
 
 pub struct ListApp<'a> {
   name_only: bool,
@@ -56,7 +59,12 @@ impl<'a> ListApp<'a> {
       None => None,
     };
 
-    let info_list = list::get_compiler_info()?;
+    let info_list: Vec<list::CompilerInfo> = {
+      let url = "http://melpon.org/wandbox/api/list.json";
+      let res = hyper::Client::new().get(url).send()?;
+      serde_json::from_reader(res)?
+    };
+
     let info_list = info_list.into_iter()
       .filter(move |info| {
         ptn_name.as_ref()
@@ -154,12 +162,22 @@ impl<'a> RunApp<'a> {
     println!("Request Parameter:");
     println!("{}\n", serde_json::to_string_pretty(&parameter)?);
 
-    let result: compile::Result = parameter.request()?;
+    // Post compile request to Wandbox
+    let result: compile::Result = {
+      let url = "http://melpon.org/wandbox/api/compile.json";
+      let res = hyper::Client::new().post(url)
+        .header(ContentType::json())
+        .body(&serde_json::to_string(&parameter)?)
+        .send()?;
+      serde_json::from_reader(res)?
+    };
+
     // util::dump_to_json(&result)?;
     if let Some(ref message) = result.program_message {
       println!("Program message:\n{}", message);
     } else {
-      println!("Compiler message:\n{}", result.compiler_message.as_ref().unwrap());
+      println!("Compiler message:\n{}",
+               result.compiler_message.as_ref().unwrap());
     }
 
     if let Some(url) = result.url {
@@ -217,7 +235,11 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp<'a> {
 
 impl<'a> PermlinkApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
-    let result = permlink::get_from_permlink(&self.link)?;
+    let result: permlink::Result = {
+      let url = format!("http://melpon.org/wandbox/api/permlink/{}", self.link);
+      let res = hyper::Client::new().get(&url).send()?;
+      serde_json::from_reader(res)?
+    };
     util::dump_to_json(&result)?;
     Ok(0)
   }

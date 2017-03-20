@@ -1,4 +1,3 @@
-use http;
 use util;
 use std::path::Path;
 
@@ -109,10 +108,6 @@ impl Parameter {
   pub fn save(mut self, save: bool) -> Self {
     self.save = Some(save);
     self
-  }
-
-  pub fn request(self) -> ::Result<Result> {
-    http::post("http://melpon.org/wandbox/api/compile.json", self)
   }
 }
 

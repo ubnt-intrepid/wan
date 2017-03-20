@@ -4,7 +4,6 @@ use serde;
 use serde_json;
 use Result;
 use util::Either;
-use http;
 
 
 pub trait FromExtension: Sized {
@@ -138,10 +137,6 @@ pub struct CompilerOption {
   pub display_name: String,
   #[serde(rename = "display-flags")]
   pub display_flags: String,
-}
-
-pub fn get_compiler_info() -> Result<Vec<CompilerInfo>> {
-  http::get_json("http://melpon.org/wandbox/api/list.json", &[])
 }
 
 #[test]

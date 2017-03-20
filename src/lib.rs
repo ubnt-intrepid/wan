@@ -14,9 +14,8 @@ extern crate wan_derive;
 pub mod app;
 pub mod compile;
 pub mod list;
-pub mod http;
-pub mod util;
 pub mod permlink;
+pub mod util;
 
 error_chain! {
   foreign_links {
