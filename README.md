@@ -94,10 +94,28 @@ Get a result specified a permlink from Wandbox
 $ wan permlink xxxxxxxx
 ```
 
-## Similar Projects
-- [mattn/wandbox-run](https://github.com/mattn/wandbox-run)
-  \- source of inspiration for developing this project
+## Related Projects
+### Wandbox
+- [melpon/wandbox](https://github.com/melpon/wandbox)
+
+### Editor Plugin
 - [rhysd/wandbox-vim](https://github.com/rhysd/wandbox-vim)
-  \- for Vimmer
+  \- for Vimmers
+- [kosh04/emacs-wandbox](https://github.com/kosh04/emacs-wandbox)
+  \- for Emacs users
 - [wraith13/wandbox-vscode](https://github.com/wraith13/wandbox-vscode)
-  \- for VSCode user
+  \- for VSCode users
+
+### Command Line Client
+- [mattn/wandbox-run](https://github.com/mattn/wandbox-run)
+  \- Run wandbox as shebang (my inspiration source for developing this project)
+- [osyo-manga/gem-wandbox](https://github.com/osyo-manga/gem-wandbox)
+  \- written in Ruby
+- [rbtnn/go-wandbox](https://github.com/rbtnn/go-wandbox)
+  \- written in Golang
+
+### API
+- [srz-zumix/wandbox-api](https://github.com/srz-zumix/wandbox-api)
+  \- Python
+- [Planeshifter/node-wandbox-api](https://github.com/Planeshifter/node-wandbox-api)
+  \- Node.js
