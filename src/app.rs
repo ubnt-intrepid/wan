@@ -155,12 +155,16 @@ impl<'a> RunApp<'a> {
       parameter = parameter.stdin(stdin);
     }
 
-    let result = parameter.request()?;
+    let result: compile::Result = parameter.request()?;
     // util::dump_to_json(&result)?;
     if let Some(ref message) = result.program_message {
-      println!("{}", message);
+      println!("Program message:\n{}", message);
     } else {
-      println!("{}", result.compiler_message.as_ref().unwrap());
+      println!("Compiler message:\n{}", result.compiler_message.as_ref().unwrap());
+    }
+
+    if let Some(url) = result.url {
+      println!("Permlink URL:\n{}", url);
     }
 
     Ok(result.status)
