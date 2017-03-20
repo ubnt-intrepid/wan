@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
 use clap;
+use serde_json;
 use shlex;
 use regex::Regex;
 
@@ -86,7 +87,7 @@ pub struct RunApp<'a> {
   options: Option<&'a str>,
   compiler_args: Option<&'a str>,
   runtime_args: Option<&'a str>,
-  stdin: bool,
+  stdin: Option<&'a str>,
   permlink: bool,
 }
 
@@ -100,7 +101,7 @@ impl<'c> RunApp<'c> {
         --options=[options]             'Used options (separated by comma)'
         --compile-args=[compiler-args]  'Arguments for compiler'
         --runtime-args=[runtime-args]   'Arguments for compiled binary or interpreter'
-        --stdin                         'Read content from stdin as wandbox's standard input'
+        --stdin=[stdin]                 'Standard input'
         --permlink                      'Generate permlink'
       "#)
   }
@@ -115,7 +116,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
       options: m.value_of("options"),
       compiler_args: m.value_of("compiler-args"),
       runtime_args: m.value_of("runtime-args"),
-      stdin: m.is_present("stdin"),
+      stdin: m.value_of("stdin"),
       permlink: m.is_present("permlink"),
     }
   }
@@ -125,12 +126,6 @@ impl<'a> RunApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
     let code = self.read_code()?;
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
-
-    let mut stdin = None;
-    if self.stdin && self.filename != "-" {
-      stdin = Some(String::new());
-      ::std::io::stdin().read_to_string(stdin.as_mut().unwrap())?;
-    }
 
     let mut parameter = compile::Parameter::new(code, compiler);
     parameter = parameter.save(self.permlink);
@@ -151,9 +146,13 @@ impl<'a> RunApp<'a> {
       parameter = parameter.codes(files.map(|ref s| compile::Code::new(s)));
     }
 
-    if let Some(stdin) = stdin {
+    if let Some(stdin) = self.stdin {
       parameter = parameter.stdin(stdin);
     }
+
+    // Show request parameter.
+    println!("Request Parameter:");
+    println!("{}\n", serde_json::to_string_pretty(&parameter)?);
 
     let result: compile::Result = parameter.request()?;
     // util::dump_to_json(&result)?;
