@@ -4,15 +4,14 @@ extern crate env_logger;
 extern crate wan;
 
 use std::io::Write;
-use wan::app::{App, Register, Run};
+use wan::app::{App};
 
 fn main() {
   env_logger::init().unwrap();
 
-  let ref matches = app_from_crate!()
+  let ref matches = App::make_app(app_from_crate!()
     .setting(clap::AppSettings::VersionlessSubcommands)
-    .setting(clap::AppSettings::SubcommandRequiredElseHelp)
-    .register::<App>()
+    .setting(clap::AppSettings::SubcommandRequiredElseHelp))
     .get_matches();
   let app: App = matches.into();
 

@@ -12,42 +12,13 @@ use util;
 use permlink;
 
 
-pub trait MakeApp {
-  fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b>;
-}
-
-pub trait Run {
-  type Err;
-  fn run(self) -> Result<i32, Self::Err>;
-}
-
-pub trait Register {
-  fn register<T: MakeApp>(self) -> Self;
-}
-
-impl<'a, 'b: 'a> Register for clap::App<'a, 'b> {
-  fn register<T: MakeApp>(self) -> Self {
-    T::make_app(self)
-  }
-}
-
-pub trait RegisterSubcommand {
-  fn register_subcommand<T: MakeApp>(self, name: &str) -> Self;
-}
-
-impl<'a, 'b: 'a> RegisterSubcommand for clap::App<'a, 'b> {
-  fn register_subcommand<T: MakeApp>(self, name: &str) -> Self {
-    self.subcommand(T::make_app(clap::SubCommand::with_name(name)))
-  }
-}
-
 pub struct ListApp<'a> {
   name_only: bool,
   name: Option<&'a str>,
   lang: Option<&'a str>,
 }
 
-impl<'c> MakeApp for ListApp<'c> {
+impl<'c> ListApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("List compiler information")
       .arg_from_usage("--name-only      'Display names only'")
@@ -66,10 +37,8 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp<'a> {
   }
 }
 
-impl<'a> Run for ListApp<'a> {
-  type Err = ::Error;
-
-  fn run(self) -> Result<i32, Self::Err> {
+impl<'a> ListApp<'a> {
+  fn run(self) -> Result<i32, ::Error> {
     let ptn_name = match self.name {
       Some(name) => Some(Regex::new(&name)?),
       None => None,
@@ -120,7 +89,7 @@ pub struct RunApp<'a> {
   permlink: bool,
 }
 
-impl<'c> MakeApp for RunApp<'c> {
+impl<'c> RunApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("Post a code to wandbox and get a result")
       .args_from_usage(r#"
@@ -150,6 +119,35 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
 }
 
 impl<'a> RunApp<'a> {
+  fn run(self) -> Result<i32, ::Error> {
+    let code = self.read_code()?;
+    let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
+
+    let mut parameter = compile::Parameter::new(code, compiler);
+    parameter = parameter.save(self.permlink);
+
+    if let Some(options) = self.options {
+      parameter = parameter.options(options);
+    }
+
+    if let Some(args) = self.compiler_args.and_then(|s| shlex::split(&s)) {
+      parameter = parameter.compiler_option(args);
+    }
+
+    if let Some(args) = self.runtime_args.and_then(|s| shlex::split(&s)) {
+      parameter = parameter.runtime_option(args);
+    }
+
+    if let Some(files) = self.files {
+      parameter = parameter.codes(files.map(|ref s| compile::Code::new(s)));
+    }
+
+    let result = parameter.request()?;
+    util::dump_to_json(&result)?;
+
+    Ok(result.status())
+  }
+
   fn read_code(&self) -> ::Result<String> {
     let mut code = String::new();
     if self.filename != "-" {
@@ -178,45 +176,12 @@ impl<'a> RunApp<'a> {
   }
 }
 
-impl<'a> Run for RunApp<'a> {
-  type Err = ::Error;
-
-  fn run(self) -> Result<i32, Self::Err> {
-    let code = self.read_code()?;
-    let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
-
-    let mut parameter = compile::Parameter::new(code, compiler);
-    parameter = parameter.save(self.permlink);
-
-    if let Some(options) = self.options {
-      parameter = parameter.options(options);
-    }
-
-    if let Some(args) = self.compiler_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.compiler_option(args);
-    }
-
-    if let Some(args) = self.runtime_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.runtime_option(args);
-    }
-
-    if let Some(files) = self.files {
-      parameter = parameter.codes(files.map(|ref s| compile::Code::new(s)));
-    }
-
-    let result = parameter.request()?;
-    util::dump_to_json(&result)?;
-
-    Ok(result.status())
-  }
-}
-
 
 pub struct PermlinkApp<'a> {
   link: &'a str,
 }
 
-impl<'c> MakeApp for PermlinkApp<'c> {
+impl<'c> PermlinkApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("Get a result specified a given permanent link")
       .arg_from_usage("<link> 'Link name'")
@@ -229,10 +194,8 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp<'a> {
   }
 }
 
-impl<'a> Run for PermlinkApp<'a> {
-  type Err = ::Error;
-
-  fn run(self) -> Result<i32, Self::Err> {
+impl<'a> PermlinkApp<'a> {
+  fn run(self) -> Result<i32, ::Error> {
     let result = permlink::get_from_permlink(&self.link)?;
     util::dump_to_json(&result)?;
     Ok(0)
@@ -246,13 +209,11 @@ pub enum App<'a> {
   Permlink(PermlinkApp<'a>),
 }
 
-
-impl<'c> MakeApp for App<'c> {
-  fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-    let app = app.register_subcommand::<ListApp>("list");
-    let app = app.register_subcommand::<RunApp>("run");
-    let app = app.register_subcommand::<PermlinkApp>("permlink");
-    app
+impl<'c> App<'c> {
+  pub fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
+    app.subcommand(ListApp::make_app(clap::SubCommand::with_name("list")))
+      .subcommand(RunApp::make_app(clap::SubCommand::with_name("run")))
+      .subcommand(PermlinkApp::make_app(clap::SubCommand::with_name("permlink")))
   }
 }
 
@@ -267,10 +228,8 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for App<'a> {
   }
 }
 
-impl<'a> Run for App<'a> {
-  type Err = ::Error;
-
-  fn run(self) -> Result<i32, Self::Err> {
+impl<'a> App<'a> {
+  pub fn run(self) -> Result<i32, ::Error> {
     match self {
       App::List(a) => a.run(),
       App::Run(a) => a.run(),
