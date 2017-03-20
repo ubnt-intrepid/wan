@@ -2,15 +2,17 @@ use std::borrow::Borrow;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
+
 use clap;
+use hyper;
+use hyper::header::ContentType;
+use serde_json;
 use shlex;
 use regex::Regex;
 
-use compile;
-use list;
+use language;
+use wandbox;
 use util;
-use permlink;
-
 
 pub struct ListApp<'a> {
   name_only: bool,
@@ -55,7 +57,12 @@ impl<'a> ListApp<'a> {
       None => None,
     };
 
-    let info_list = list::get_compiler_info()?;
+    let info_list: Vec<wandbox::CompilerInfo> = {
+      let url = "http://melpon.org/wandbox/api/list.json";
+      let res = hyper::Client::new().get(url).send()?;
+      serde_json::from_reader(res)?
+    };
+
     let info_list = info_list.into_iter()
       .filter(move |info| {
         ptn_name.as_ref()
@@ -86,6 +93,7 @@ pub struct RunApp<'a> {
   options: Option<&'a str>,
   compiler_args: Option<&'a str>,
   runtime_args: Option<&'a str>,
+  stdin: Option<&'a str>,
   permlink: bool,
 }
 
@@ -99,6 +107,7 @@ impl<'c> RunApp<'c> {
         --options=[options]             'Used options (separated by comma)'
         --compile-args=[compiler-args]  'Arguments for compiler'
         --runtime-args=[runtime-args]   'Arguments for compiled binary or interpreter'
+        --stdin=[stdin]                 'Standard input'
         --permlink                      'Generate permlink'
       "#)
   }
@@ -113,6 +122,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
       options: m.value_of("options"),
       compiler_args: m.value_of("compiler-args"),
       runtime_args: m.value_of("runtime-args"),
+      stdin: m.value_of("stdin"),
       permlink: m.is_present("permlink"),
     }
   }
@@ -123,29 +133,56 @@ impl<'a> RunApp<'a> {
     let code = self.read_code()?;
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
-    let mut parameter = compile::Parameter::new(code, compiler);
-    parameter = parameter.save(self.permlink);
+    let mut parameter = wandbox::Parameter::new(code, compiler);
+    parameter.save_permlink(self.permlink);
 
     if let Some(options) = self.options {
-      parameter = parameter.options(options);
+      parameter.options(options);
     }
 
     if let Some(args) = self.compiler_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.compiler_option(args);
+      parameter.compiler_option(args);
     }
 
     if let Some(args) = self.runtime_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.runtime_option(args);
+      parameter.runtime_option(args);
     }
 
     if let Some(files) = self.files {
-      parameter = parameter.codes(files.map(|ref s| compile::Code::new(s)));
+      parameter.codes(files);
     }
 
-    let result = parameter.request()?;
-    util::dump_to_json(&result)?;
+    if let Some(stdin) = self.stdin {
+      parameter.stdin(stdin);
+    }
 
-    Ok(result.status())
+    // Show request parameter.
+    println!("Request Parameter:");
+    println!("{}\n", serde_json::to_string_pretty(&parameter)?);
+
+    // Post compile request to Wandbox
+    let result: wandbox::Response = {
+      let url = "http://melpon.org/wandbox/api/compile.json";
+      let res = hyper::Client::new().post(url)
+        .header(ContentType::json())
+        .body(&serde_json::to_string(&parameter)?)
+        .send()?;
+      serde_json::from_reader(res)?
+    };
+
+    // util::dump_to_json(&result)?;
+    if let Some(ref message) = result.program_message {
+      println!("Program message:\n{}", message);
+    } else {
+      println!("Compiler message:\n{}",
+               result.compiler_message.as_ref().unwrap());
+    }
+
+    if let Some(url) = result.url {
+      println!("Permlink URL:\n{}", url);
+    }
+
+    Ok(result.status)
   }
 
   fn read_code(&self) -> ::Result<String> {
@@ -160,15 +197,12 @@ impl<'a> RunApp<'a> {
   }
 
   fn guess_compiler(&self) -> Option<String> {
-    use list::FromExtension;
-    use list::GetDefaultCompiler;
     self.compiler
       .or_else(|| if self.filename != "-" {
         PathBuf::from(self.filename)
           .extension()
           .map(|ext| ext.to_string_lossy())
-          .and_then(|ext| list::Language::from_extension(ext.borrow()).ok())
-          .and_then(|ref lang| lang.get_default_compiler())
+          .and_then(|ext| language::get_compiler_from_ext(ext.borrow()))
       } else {
         None
       })
@@ -196,7 +230,16 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp<'a> {
 
 impl<'a> PermlinkApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
-    let result = permlink::get_from_permlink(&self.link)?;
+    #[derive(Debug, Serialize, Deserialize)]
+    struct PermlinkResult {
+      parameter: wandbox::Parameter,
+      result: wandbox::Response,
+    }
+    let result: PermlinkResult = {
+      let url = format!("http://melpon.org/wandbox/api/permlink/{}", self.link);
+      let res = hyper::Client::new().get(&url).send()?;
+      serde_json::from_reader(res)?
+    };
     util::dump_to_json(&result)?;
     Ok(0)
   }

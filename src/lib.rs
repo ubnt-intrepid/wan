@@ -9,14 +9,12 @@ extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
-extern crate wan_derive;
+extern crate lazy_static;
 
 pub mod app;
-pub mod compile;
-pub mod list;
-pub mod http;
+pub mod language;
+pub mod wandbox;
 pub mod util;
-pub mod permlink;
 
 error_chain! {
   foreign_links {
