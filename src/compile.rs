@@ -2,6 +2,29 @@ use util;
 use std::path::Path;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Code {
+  file: String,
+  code: String,
+}
+
+impl Code {
+  pub fn new<P: AsRef<Path> + Copy>(path: P) -> Code {
+    let file = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
+
+    let mut f = ::std::fs::File::open(path).unwrap();
+    use std::io::Read;
+    let mut code = String::new();
+    f.read_to_string(&mut code).unwrap();
+
+    Code {
+      file: file,
+      code: code,
+    }
+  }
+}
+
+
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Parameter {
   pub code: String,
   pub compiler: String,
@@ -31,28 +54,6 @@ pub struct Parameter {
   pub created_at: Option<String>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Code {
-  file: String,
-  code: String,
-}
-
-impl Code {
-  pub fn new<P: AsRef<Path> + Copy>(path: P) -> Code {
-    let file = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
-
-    let mut f = ::std::fs::File::open(path).unwrap();
-    use std::io::Read;
-    let mut code = String::new();
-    f.read_to_string(&mut code).unwrap();
-
-    Code {
-      file: file,
-      code: code,
-    }
-  }
-}
-
 impl Parameter {
   pub fn new<S1: Into<String>, S2: Into<String>>(code: S1, compiler: S2) -> Self {
     let mut ret = Self::default();
@@ -61,35 +62,34 @@ impl Parameter {
     ret
   }
 
-  pub fn options<S: Into<String>>(mut self, options: S) -> Self {
+  pub fn options<S: Into<String>>(&mut self, options: S) -> &mut Self {
     self.options = Some(options.into());
     self
   }
 
-  pub fn code(mut self, code: Code) -> Self {
-    if self.codes.is_none() {
-      self.codes = Some(Vec::new());
-    }
-    self.codes.as_mut().unwrap().push(code);
-    self
+  pub fn code<S>(&mut self, file: S) -> &mut Self
+    where S: AsRef<str>
+  {
+    self.codes(vec![file])
   }
 
-  pub fn codes<I>(mut self, codes: I) -> Self
-    where I: IntoIterator<Item = Code>
+  pub fn codes<I, S>(&mut self, files: I) -> &mut Self
+    where I: IntoIterator<Item = S>,
+          S: AsRef<str>
   {
     if self.codes.is_none() {
       self.codes = Some(Vec::new());
     }
-    self.codes.as_mut().unwrap().extend(codes);
+    self.codes.as_mut().unwrap().extend(files.into_iter().map(|s| Code::new(s.as_ref())));
     self
   }
 
-  pub fn stdin<S: Into<String>>(mut self, stdin: S) -> Self {
+  pub fn stdin<S: Into<String>>(&mut self, stdin: S) -> &mut Self {
     self.stdin = Some(stdin.into());
     self
   }
 
-  pub fn compiler_option<I, S>(mut self, options: I) -> Self
+  pub fn compiler_option<I, S>(&mut self, options: I) -> &mut Self
     where I: IntoIterator<Item = S>,
           S: AsRef<str>
   {
@@ -97,7 +97,7 @@ impl Parameter {
     self
   }
 
-  pub fn runtime_option<I, S>(mut self, options: I) -> Self
+  pub fn runtime_option<I, S>(&mut self, options: I) -> &mut Self
     where I: IntoIterator<Item = S>,
           S: AsRef<str>
   {
@@ -105,7 +105,7 @@ impl Parameter {
     self
   }
 
-  pub fn save(mut self, save: bool) -> Self {
+  pub fn save_permlink(&mut self, save: bool) -> &mut Self {
     self.save = Some(save);
     self
   }

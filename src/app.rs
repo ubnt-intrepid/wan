@@ -136,26 +136,26 @@ impl<'a> RunApp<'a> {
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
     let mut parameter = compile::Parameter::new(code, compiler);
-    parameter = parameter.save(self.permlink);
+    parameter.save_permlink(self.permlink);
 
     if let Some(options) = self.options {
-      parameter = parameter.options(options);
+      parameter.options(options);
     }
 
     if let Some(args) = self.compiler_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.compiler_option(args);
+      parameter.compiler_option(args);
     }
 
     if let Some(args) = self.runtime_args.and_then(|s| shlex::split(&s)) {
-      parameter = parameter.runtime_option(args);
+      parameter.runtime_option(args);
     }
 
     if let Some(files) = self.files {
-      parameter = parameter.codes(files.map(|ref s| compile::Code::new(s)));
+      parameter.codes(files);
     }
 
     if let Some(stdin) = self.stdin {
-      parameter = parameter.stdin(stdin);
+      parameter.stdin(stdin);
     }
 
     // Show request parameter.
