@@ -16,6 +16,3 @@ serde_json = "0.9.9"
 shlex = "0.1.1"
 regex = "0.2.1"
 lazy_static = "0.2.4"
-
-[dependencies.wan-derive]
-path = "./wan-derive"

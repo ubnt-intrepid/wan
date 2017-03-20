@@ -10,6 +10,7 @@ use serde_json;
 use shlex;
 use regex::Regex;
 
+use language;
 use wandbox;
 use util;
 
@@ -196,15 +197,12 @@ impl<'a> RunApp<'a> {
   }
 
   fn guess_compiler(&self) -> Option<String> {
-    use wandbox::FromExtension;
-    use wandbox::GetDefaultCompiler;
     self.compiler
       .or_else(|| if self.filename != "-" {
         PathBuf::from(self.filename)
           .extension()
           .map(|ext| ext.to_string_lossy())
-          .and_then(|ext| wandbox::Language::from_extension(ext.borrow()).ok())
-          .and_then(|ref lang| lang.get_default_compiler())
+          .and_then(|ext| language::get_compiler_from_ext(ext.borrow()))
       } else {
         None
       })
@@ -232,7 +230,12 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp<'a> {
 
 impl<'a> PermlinkApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
-    let result: wandbox::PermlinkResult = {
+    #[derive(Debug, Serialize, Deserialize)]
+    struct PermlinkResult {
+      parameter: wandbox::Parameter,
+      result: wandbox::Response,
+    }
+    let result: PermlinkResult = {
       let url = format!("http://melpon.org/wandbox/api/permlink/{}", self.link);
       let res = hyper::Client::new().get(&url).send()?;
       serde_json::from_reader(res)?
