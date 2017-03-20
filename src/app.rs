@@ -156,9 +156,14 @@ impl<'a> RunApp<'a> {
     }
 
     let result = parameter.request()?;
-    util::dump_to_json(&result)?;
+    // util::dump_to_json(&result)?;
+    if let Some(ref message) = result.program_message {
+      println!("{}", message);
+    } else {
+      println!("{}", result.compiler_message.as_ref().unwrap());
+    }
 
-    Ok(result.status())
+    Ok(result.status)
   }
 
   fn read_code(&self) -> ::Result<String> {

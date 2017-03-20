@@ -130,17 +130,3 @@ pub struct Result {
   pub permlink: Option<String>,
   pub url: Option<String>,
 }
-
-impl Result {
-  pub fn status(&self) -> i32 {
-    self.status
-  }
-
-  pub fn report(&self) {
-    if let Some(ref message) = self.program_message {
-      println!("{}", message);
-    } else {
-      println!("{}", self.compiler_message.as_ref().unwrap());
-    }
-  }
-}
