@@ -86,6 +86,7 @@ pub struct RunApp<'a> {
   options: Option<&'a str>,
   compiler_args: Option<&'a str>,
   runtime_args: Option<&'a str>,
+  stdin: bool,
   permlink: bool,
 }
 
@@ -99,6 +100,7 @@ impl<'c> RunApp<'c> {
         --options=[options]             'Used options (separated by comma)'
         --compile-args=[compiler-args]  'Arguments for compiler'
         --runtime-args=[runtime-args]   'Arguments for compiled binary or interpreter'
+        --stdin                         'Read content from stdin as wandbox's standard input'
         --permlink                      'Generate permlink'
       "#)
   }
@@ -113,6 +115,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
       options: m.value_of("options"),
       compiler_args: m.value_of("compiler-args"),
       runtime_args: m.value_of("runtime-args"),
+      stdin: m.is_present("stdin"),
       permlink: m.is_present("permlink"),
     }
   }
@@ -122,6 +125,12 @@ impl<'a> RunApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
     let code = self.read_code()?;
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
+
+    let mut stdin = None;
+    if self.stdin && self.filename != "-" {
+      stdin = Some(String::new());
+      ::std::io::stdin().read_to_string(stdin.as_mut().unwrap())?;
+    }
 
     let mut parameter = compile::Parameter::new(code, compiler);
     parameter = parameter.save(self.permlink);
@@ -140,6 +149,10 @@ impl<'a> RunApp<'a> {
 
     if let Some(files) = self.files {
       parameter = parameter.codes(files.map(|ref s| compile::Code::new(s)));
+    }
+
+    if let Some(stdin) = stdin {
+      parameter = parameter.stdin(stdin);
     }
 
     let result = parameter.request()?;
