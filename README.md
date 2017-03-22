@@ -20,7 +20,7 @@ $ cargo install --git https://github.com/ubnt-intrepid/wan.git
 
 ## Commands (In progress)
 
-### `wan run <filename> [<filenames>...] [options]`  
+### `wan run <filename> [<filenames>...]`  
 Post a code to Wandbox, and retrieve compilation/execution results.  
 
 #### Arguments
@@ -39,6 +39,12 @@ Post a code to Wandbox, and retrieve compilation/execution results.
 
 * `--runtime-options=<options>`  - Arguments to pass (compiled) executable  
   Arguments are joined by space(s).
+
+* `--stdin=[stdin str]` - Standard input
+
+* `--permlink` - Generate permlink
+
+* `--browse` - Open permlink URL
 
 #### Example
 ```cpp
