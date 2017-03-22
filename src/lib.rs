@@ -5,6 +5,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate shlex;
 extern crate clap;
+extern crate url;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
@@ -24,5 +25,6 @@ error_chain! {
     HyperNativeTls(::hyper_native_tls::native_tls::Error);
     Regex(::regex::Error);
     SerdeJson(::serde_json::Error);
+    UrlParse(::url::ParseError);
   }
 }

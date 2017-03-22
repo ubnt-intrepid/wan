@@ -10,6 +10,7 @@ use hyper_native_tls;
 use serde_json;
 use shlex;
 use regex::Regex;
+use url::Url;
 
 use language;
 use wandbox;
@@ -17,11 +18,6 @@ use util;
 
 const WANDBOX_URL: &'static str = "https://wandbox.org";
 
-fn build_http_client() -> ::Result<hyper::Client> {
-  let tls = hyper_native_tls::NativeTlsClient::new()?;
-  let connector = hyper::net::HttpsConnector::new(tls);
-  Ok(hyper::Client::with_connector(connector))
-}
 
 pub struct ListApp<'a> {
   name_only: bool,
@@ -105,6 +101,7 @@ pub struct RunApp<'a> {
   runtime_args: Option<&'a str>,
   stdin: Option<&'a str>,
   permlink: bool,
+  browse: bool,
 }
 
 impl<'c> RunApp<'c> {
@@ -118,7 +115,8 @@ impl<'c> RunApp<'c> {
         --compile-args=[compiler-args]  'Arguments for compiler'
         --runtime-args=[runtime-args]   'Arguments for compiled binary or interpreter'
         --stdin=[stdin]                 'Standard input'
-        --permlink                      'Generate permlink'
+        --permlink                      'Generate permlink and output URL at end'
+        --browse                        'Open permlink URL'
       "#)
   }
 }
@@ -134,6 +132,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
       runtime_args: m.value_of("runtime-args"),
       stdin: m.value_of("stdin"),
       permlink: m.is_present("permlink"),
+      browse: m.is_present("browse"),
     }
   }
 }
@@ -144,7 +143,7 @@ impl<'a> RunApp<'a> {
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
     let mut parameter = wandbox::Parameter::new(code, compiler);
-    parameter.save_permlink(self.permlink);
+    parameter.save_permlink(self.browse || self.permlink);
 
     if let Some(options) = self.options {
       parameter.options(options);
@@ -193,12 +192,16 @@ impl<'a> RunApp<'a> {
       println!("Program message:");
       println!("{}", message);
     } else {
-      println!("Compiler message:\n{}",
-               response.compiler_message.as_ref().unwrap());
+      println!("Compiler message:");
+      println!("{}", response.compiler_message.as_ref().unwrap());
     }
 
     if let Some(url) = response.url {
-      println!("Permlink URL:\n{}", url);
+      println!("Permlink URL:");
+      println!("{}", url);
+      if self.browse {
+        open_browser(url)?;
+      }
     }
 
     Ok(response.status)
@@ -299,4 +302,35 @@ impl<'a> App<'a> {
       App::Permlink(a) => a.run(),
     }
   }
+}
+
+
+fn build_http_client() -> ::Result<hyper::Client> {
+  let tls = hyper_native_tls::NativeTlsClient::new()?;
+  let connector = hyper::net::HttpsConnector::new(tls);
+  Ok(hyper::Client::with_connector(connector))
+}
+
+#[cfg(target_os = "windows")]
+fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
+  let url = Url::parse(s.as_ref())?;
+  ::std::process::Command::new("explorer").arg(url.as_str())
+    .status()?;
+  Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
+  let url = Url::parse(s.as_ref())?;
+  ::std::process::Command::new("open").arg(url.as_str())
+    .status()?;
+  Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
+  let url = Url::parse(s.as_ref())?;
+  ::std::process::Command::new("xdg-open").arg(url.as_str())
+    .status()?;
+  Ok(())
 }
