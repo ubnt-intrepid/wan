@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use clap;
 use hyper;
 use hyper::header::ContentType;
+use hyper_native_tls;
 use serde_json;
 use shlex;
 use regex::Regex;
@@ -13,6 +14,14 @@ use regex::Regex;
 use language;
 use wandbox;
 use util;
+
+const WANDBOX_URL: &'static str = "https://wandbox.org";
+
+fn build_http_client() -> ::Result<hyper::Client> {
+  let tls = hyper_native_tls::NativeTlsClient::new()?;
+  let connector = hyper::net::HttpsConnector::new(tls);
+  Ok(hyper::Client::with_connector(connector))
+}
 
 pub struct ListApp<'a> {
   name_only: bool,
@@ -58,8 +67,9 @@ impl<'a> ListApp<'a> {
     };
 
     let info_list: Vec<wandbox::CompilerInfo> = {
-      let url = "http://melpon.org/wandbox/api/list.json";
-      let res = hyper::Client::new().get(url).send()?;
+      let list_url = format!("{}/api/list.json", WANDBOX_URL);
+      let client = build_http_client()?;
+      let res = client.get(&list_url).send()?;
       serde_json::from_reader(res)?
     };
 
@@ -156,33 +166,42 @@ impl<'a> RunApp<'a> {
       parameter.stdin(stdin);
     }
 
-    // Show request parameter.
-    println!("Request Parameter:");
-    println!("{}\n", serde_json::to_string_pretty(&parameter)?);
+    let run_url = format!("{}/api/compile.json", WANDBOX_URL);
+
+    println!("HTTP POST {}", run_url);
+    println!("{}", serde_json::to_string_pretty(&parameter)?);
 
     // Post compile request to Wandbox
-    let result: wandbox::Response = {
-      let url = "http://melpon.org/wandbox/api/compile.json";
-      let res = hyper::Client::new().post(url)
-        .header(ContentType::json())
-        .body(&serde_json::to_string(&parameter)?)
-        .send()?;
-      serde_json::from_reader(res)?
-    };
+    let client = build_http_client()?;
+    let mut res = client.post(&run_url)
+      .header(ContentType::json())
+      .body(&serde_json::to_string(&parameter)?)
+      .send()?;
+    println!("HTTP STATUS: {}", res.status);
 
-    // util::dump_to_json(&result)?;
-    if let Some(ref message) = result.program_message {
-      println!("Program message:\n{}", message);
+    let mut buf = String::new();
+    res.read_to_string(&mut buf)?;
+    println!("HTTP RESPONSE:");
+    println!("{}", buf);
+    println!();
+
+    let response: wandbox::Response = serde_json::from_str(&buf)?;
+
+    // Show compile response
+    println!("Status: {}", response.status);
+    if let Some(ref message) = response.program_message {
+      println!("Program message:");
+      println!("{}", message);
     } else {
       println!("Compiler message:\n{}",
-               result.compiler_message.as_ref().unwrap());
+               response.compiler_message.as_ref().unwrap());
     }
 
-    if let Some(url) = result.url {
+    if let Some(url) = response.url {
       println!("Permlink URL:\n{}", url);
     }
 
-    Ok(result.status)
+    Ok(response.status)
   }
 
   fn read_code(&self) -> ::Result<String> {
@@ -236,8 +255,9 @@ impl<'a> PermlinkApp<'a> {
       result: wandbox::Response,
     }
     let result: PermlinkResult = {
-      let url = format!("http://melpon.org/wandbox/api/permlink/{}", self.link);
-      let res = hyper::Client::new().get(&url).send()?;
+      let permlink_url = format!("{}/api/permlink/{}", WANDBOX_URL, self.link);
+      let client = build_http_client()?;
+      let res = client.get(&permlink_url).send()?;
       serde_json::from_reader(res)?
     };
     util::dump_to_json(&result)?;

@@ -1,4 +1,5 @@
 extern crate hyper;
+extern crate hyper_native_tls;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
@@ -20,6 +21,7 @@ error_chain! {
   foreign_links {
     Io(::std::io::Error);
     Hyper(::hyper::error::Error);
+    HyperNativeTls(::hyper_native_tls::native_tls::Error);
     Regex(::regex::Error);
     SerdeJson(::serde_json::Error);
   }
