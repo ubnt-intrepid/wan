@@ -29,6 +29,7 @@ fn make_languages() -> HashMap<&'static str, (&'static str, Vec<&'static str>)> 
   mappings.insert("Pascal", ("fpc-head", vec!["pas"]));
   mappings.insert("Perl", ("perl-head", vec!["pl"]));
   mappings.insert("PHP", ("php-head", vec!["php"]));
+  mappings.insert("Pony", ("pony-head", vec!["pony"]));
   mappings.insert("Python", ("cpython-head", vec!["py"]));
   mappings.insert("Rill", ("rill-head", vec!["rill"]));
   mappings.insert("Ruby", ("ruby-head", vec!["rb"]));
