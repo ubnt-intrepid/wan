@@ -1,10 +1,89 @@
-use util;
+use std::io::Read;
 use std::path::Path;
-#[allow(unused_imports)]
+
+use hyper;
+use hyper_native_tls;
 use serde;
-#[cfg(test)]
 use serde_json;
-use util::Either;
+
+use util::{self, Either};
+
+const WANDBOX_URL: &'static str = "https://wandbox.org";
+
+pub struct Wandbox;
+
+impl Wandbox {
+  pub fn new(_: &str) -> Wandbox {
+    Wandbox
+  }
+
+  pub fn compile(&self, param: Parameter, verbose: bool) -> ::Result<Response> {
+    if verbose {
+      println!("[HTTP session]");
+    }
+
+    let run_url = format!("{}/api/compile.json", WANDBOX_URL);
+
+    // create HTTP client.
+    let tls = hyper_native_tls::NativeTlsClient::new()?;
+    let connector = hyper::net::HttpsConnector::new(tls);
+    let client = hyper::Client::with_connector(connector);
+
+    if verbose {
+      println!("HTTP POST {}", run_url);
+      println!("{}", serde_json::to_string_pretty(&param)?);
+    }
+
+    let mut res = client.post(&run_url)
+      .header(hyper::header::ContentType::json())
+      .body(&serde_json::to_string(&param)?)
+      .send()?;
+
+    if verbose {
+      println!("HTTP STATUS: {}", res.status);
+    }
+
+    let mut buf = String::new();
+    res.read_to_string(&mut buf)?;
+    if verbose {
+      println!("HTTP RESPONSE:");
+      println!("{}", buf);
+      println!();
+    }
+
+    let response = serde_json::from_str(&buf)?;
+    Ok(response)
+  }
+
+  pub fn get_compiler_info(&self) -> ::Result<Vec<CompilerInfo>> {
+    let list_url = format!("{}/api/list.json", WANDBOX_URL);
+
+    // create HTTP client.
+    let tls = hyper_native_tls::NativeTlsClient::new()?;
+    let connector = hyper::net::HttpsConnector::new(tls);
+    let client = hyper::Client::with_connector(connector);
+
+    let res = client.get(&list_url).send()?;
+    let res = serde_json::from_reader(res)?;
+    Ok(res)
+  }
+
+  pub fn get_permlink(&self, link: &str) -> ::Result<String> {
+    let permlink_url = format!("{}/api/permlink/{}", WANDBOX_URL, link);
+
+    // create HTTP client.
+    let tls = hyper_native_tls::NativeTlsClient::new()?;
+    let connector = hyper::net::HttpsConnector::new(tls);
+    let client = hyper::Client::with_connector(connector);
+
+    let mut res = client.get(&permlink_url).send()?;
+
+    let mut buf = String::new();
+    res.read_to_string(&mut buf)?;
+
+    Ok(buf)
+  }
+}
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Code {

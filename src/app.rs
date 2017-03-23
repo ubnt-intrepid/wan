@@ -4,20 +4,14 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 
 use clap;
-use hyper;
-use hyper::header::ContentType;
-use hyper_native_tls;
 use serde_json;
 use shlex;
 use regex::Regex;
 use url::Url;
 
 use language;
-use wandbox;
+use wandbox::{self, Wandbox};
 use util;
-
-const WANDBOX_URL: &'static str = "https://wandbox.org";
-
 
 pub struct ListApp<'a> {
   name_only: bool,
@@ -62,12 +56,8 @@ impl<'a> ListApp<'a> {
       None => None,
     };
 
-    let info_list: Vec<wandbox::CompilerInfo> = {
-      let list_url = format!("{}/api/list.json", WANDBOX_URL);
-      let client = build_http_client()?;
-      let res = client.get(&list_url).send()?;
-      serde_json::from_reader(res)?
-    };
+    let wandbox = Wandbox::new("");
+    let info_list = wandbox.get_compiler_info()?;
 
     let info_list = info_list.into_iter()
       .filter(move |info| {
@@ -102,7 +92,7 @@ pub struct CompileApp<'a> {
   stdin: Option<&'a str>,
   permlink: bool,
   browse: bool,
-  verbose: bool
+  verbose: bool,
 }
 
 impl<'c> CompileApp<'c> {
@@ -135,7 +125,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for CompileApp<'a> {
       stdin: m.value_of("stdin"),
       permlink: m.is_present("permlink"),
       browse: m.is_present("browse"),
-      verbose: m.is_present("verbose")
+      verbose: m.is_present("verbose"),
     }
   }
 }
@@ -175,41 +165,18 @@ impl<'a> CompileApp<'a> {
       println!("options = {:?}", options);
     }
     if let Some(ref option_raw) = parameter.compiler_option_raw {
-      println!("compiler_options = {:?}", option_raw.split("\n").collect::<Vec<_>>());
+      println!("compiler_options = {:?}",
+               option_raw.split("\n").collect::<Vec<_>>());
     }
     if let Some(ref option_raw) = parameter.runtime_option_raw {
-      println!("runtime_options = {:?}", option_raw.split("\n").collect::<Vec<_>>());
+      println!("runtime_options = {:?}",
+               option_raw.split("\n").collect::<Vec<_>>());
     }
     println!("");
 
-    let run_url = format!("{}/api/compile.json", WANDBOX_URL);
-
-    // Post compile request to Wandbox
-    if self.verbose {
-      println!("[HTTP session]");
-    }
-    let client = build_http_client()?;
-    if self.verbose {
-      println!("HTTP POST {}", run_url);
-      println!("{}", serde_json::to_string_pretty(&parameter)?);
-    }
-    let mut res = client.post(&run_url)
-      .header(ContentType::json())
-      .body(&serde_json::to_string(&parameter)?)
-      .send()?;
-    if self.verbose {
-      println!("HTTP STATUS: {}", res.status);
-    }
-
-    let mut buf = String::new();
-    res.read_to_string(&mut buf)?;
-    if self.verbose {
-      println!("HTTP RESPONSE:");
-      println!("{}", buf);
-      println!();
-    }
-
-    let response: wandbox::Response = serde_json::from_str(&buf)?;
+    // Send request
+    let wandbox = Wandbox::new("");
+    let response = wandbox.compile(parameter, self.verbose)?;
 
     // Show compile response
     if let Some(ref message) = response.program_message {
@@ -282,12 +249,8 @@ impl<'a> PermlinkApp<'a> {
       parameter: wandbox::Parameter,
       result: wandbox::Response,
     }
-    let result: PermlinkResult = {
-      let permlink_url = format!("{}/api/permlink/{}", WANDBOX_URL, self.link);
-      let client = build_http_client()?;
-      let res = client.get(&permlink_url).send()?;
-      serde_json::from_reader(res)?
-    };
+    let wandbox = Wandbox::new("");
+    let result: PermlinkResult = serde_json::from_str(&wandbox.get_permlink(self.link)?)?;
     util::dump_to_json(&result)?;
     Ok(0)
   }
@@ -327,13 +290,6 @@ impl<'a> App<'a> {
       App::Permlink(a) => a.run(),
     }
   }
-}
-
-
-fn build_http_client() -> ::Result<hyper::Client> {
-  let tls = hyper_native_tls::NativeTlsClient::new()?;
-  let connector = hyper::net::HttpsConnector::new(tls);
-  Ok(hyper::Client::with_connector(connector))
 }
 
 #[cfg(target_os = "windows")]
