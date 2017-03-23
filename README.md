@@ -102,6 +102,16 @@ Get a result specified a permlink from Wandbox
 $ wan permlink xxxxxxxx
 ```
 
+## Configuration
+Configuration file are located at `~/.config/wan/config.json` (or `~/AppData/Roaming/wan/config.json` on Windows).
+For example, if you want to use local Wandbox service:
+
+```json
+{
+  "url": "http://127.0.0.1:3500"
+}
+```
+
 ## Related Projects
 ### Wandbox
 - [melpon/wandbox](https://github.com/melpon/wandbox)

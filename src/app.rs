@@ -9,6 +9,7 @@ use shlex;
 use regex::Regex;
 use url::Url;
 
+use config;
 use language;
 use wandbox::{self, Wandbox};
 use util;
@@ -40,6 +41,8 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp<'a> {
 
 impl<'a> ListApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
+    let config = config::Config::load()?;
+
     let ptn_name = match self.name {
       Some(name) => Some(Regex::new(&name)?),
       None => None,
@@ -56,7 +59,7 @@ impl<'a> ListApp<'a> {
       None => None,
     };
 
-    let wandbox = Wandbox::new("");
+    let wandbox = Wandbox::new(config.url);
     let info_list = wandbox.get_compiler_info()?;
 
     let info_list = info_list.into_iter()
@@ -132,6 +135,8 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for CompileApp<'a> {
 
 impl<'a> CompileApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
+    let config = config::Config::load()?;
+
     let code = self.read_code()?;
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
 
@@ -175,7 +180,7 @@ impl<'a> CompileApp<'a> {
     println!("");
 
     // Send request
-    let wandbox = Wandbox::new("");
+    let wandbox = Wandbox::new(config.url);
     let response = wandbox.compile(parameter, self.verbose)?;
 
     // Show compile response
@@ -249,7 +254,8 @@ impl<'a> PermlinkApp<'a> {
       parameter: wandbox::Parameter,
       result: wandbox::Response,
     }
-    let wandbox = Wandbox::new("");
+    let config = config::Config::load()?;
+    let wandbox = Wandbox::new(config.url);
     let result: PermlinkResult = serde_json::from_str(&wandbox.get_permlink(self.link)?)?;
     util::dump_to_json(&result)?;
     Ok(0)

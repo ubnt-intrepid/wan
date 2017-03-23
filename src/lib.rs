@@ -3,6 +3,7 @@ extern crate hyper_native_tls;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
+extern crate shellexpand;
 extern crate shlex;
 extern crate clap;
 extern crate url;
@@ -14,9 +15,10 @@ extern crate error_chain;
 extern crate lazy_static;
 
 pub mod app;
+pub mod config;
 pub mod language;
-pub mod wandbox;
 pub mod util;
+pub mod wandbox;
 
 error_chain! {
   foreign_links {
@@ -26,5 +28,6 @@ error_chain! {
     Regex(::regex::Error);
     SerdeJson(::serde_json::Error);
     UrlParse(::url::ParseError);
+    ShellExpand(::shellexpand::LookupError<::std::env::VarError>);
   }
 }

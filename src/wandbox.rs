@@ -3,18 +3,20 @@ use std::path::Path;
 
 use hyper;
 use hyper_native_tls;
-use serde;
 use serde_json;
 
 use util::{self, Either};
 
 const WANDBOX_URL: &'static str = "https://wandbox.org";
 
-pub struct Wandbox;
+pub struct Wandbox {
+  url: String,
+}
 
 impl Wandbox {
-  pub fn new(_: &str) -> Wandbox {
-    Wandbox
+  pub fn new(url: Option<String>) -> Wandbox {
+    let url = url.unwrap_or(WANDBOX_URL.into());
+    Wandbox { url: url }
   }
 
   pub fn compile(&self, param: Parameter, verbose: bool) -> ::Result<Response> {
@@ -22,7 +24,7 @@ impl Wandbox {
       println!("[HTTP session]");
     }
 
-    let run_url = format!("{}/api/compile.json", WANDBOX_URL);
+    let run_url = format!("{}/api/compile.json", self.url);
 
     // create HTTP client.
     let tls = hyper_native_tls::NativeTlsClient::new()?;
@@ -56,7 +58,7 @@ impl Wandbox {
   }
 
   pub fn get_compiler_info(&self) -> ::Result<Vec<CompilerInfo>> {
-    let list_url = format!("{}/api/list.json", WANDBOX_URL);
+    let list_url = format!("{}/api/list.json", self.url);
 
     // create HTTP client.
     let tls = hyper_native_tls::NativeTlsClient::new()?;
@@ -69,7 +71,7 @@ impl Wandbox {
   }
 
   pub fn get_permlink(&self, link: &str) -> ::Result<String> {
-    let permlink_url = format!("{}/api/permlink/{}", WANDBOX_URL, link);
+    let permlink_url = format!("{}/api/permlink/{}", self.url, link);
 
     // create HTTP client.
     let tls = hyper_native_tls::NativeTlsClient::new()?;
