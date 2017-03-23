@@ -18,9 +18,9 @@ $ cargo install --git https://github.com/ubnt-intrepid/wan.git
 ```
 
 
-## Commands (In progress)
+## Commands
 
-### `wan run <filename> [<filenames>...]`  
+### `wan compile <filename> [<filenames>...]`  
 Post a code to Wandbox, and retrieve compilation/execution results.  
 
 #### Arguments
@@ -46,6 +46,8 @@ Post a code to Wandbox, and retrieve compilation/execution results.
 
 * `--browse` - Open permlink URL
 
+* `--verbose` - Display verbose output
+
 #### Example
 ```cpp
 // hello.cpp
@@ -65,7 +67,7 @@ int main(int argc, char* argv[]) {
 ```
 
 ```sh
-$ wan run hoge.cpp --compiler=clang-head --runtime-options="a b c"
+$ wan compile hoge.cpp --compiler=clang-head --runtime-options="a b c"
 ```
 
 ### `wan list`

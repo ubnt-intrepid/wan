@@ -92,7 +92,7 @@ impl<'a> ListApp<'a> {
 }
 
 
-pub struct RunApp<'a> {
+pub struct CompileApp<'a> {
   filename: &'a str,
   files: Option<clap::Values<'a>>,
   compiler: Option<&'a str>,
@@ -102,9 +102,10 @@ pub struct RunApp<'a> {
   stdin: Option<&'a str>,
   permlink: bool,
   browse: bool,
+  verbose: bool
 }
 
-impl<'c> RunApp<'c> {
+impl<'c> CompileApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("Post a code to wandbox and get a result")
       .args_from_usage(r#"
@@ -117,13 +118,14 @@ impl<'c> RunApp<'c> {
         --stdin=[stdin]                 'Standard input'
         --permlink                      'Generate permlink and output URL at end'
         --browse                        'Open permlink URL'
+        -v, --verbose                   'Display verbose output'
       "#)
   }
 }
 
-impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
-  fn from(m: &'b clap::ArgMatches<'a>) -> RunApp<'a> {
-    RunApp {
+impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for CompileApp<'a> {
+  fn from(m: &'b clap::ArgMatches<'a>) -> CompileApp<'a> {
+    CompileApp {
       filename: m.value_of("filename").unwrap(),
       files: m.values_of("files"),
       compiler: m.value_of("compiler"),
@@ -133,11 +135,12 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for RunApp<'a> {
       stdin: m.value_of("stdin"),
       permlink: m.is_present("permlink"),
       browse: m.is_present("browse"),
+      verbose: m.is_present("verbose")
     }
   }
 }
 
-impl<'a> RunApp<'a> {
+impl<'a> CompileApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
     let code = self.read_code()?;
     let compiler = self.guess_compiler().unwrap_or("gcc-head".into());
@@ -165,39 +168,61 @@ impl<'a> RunApp<'a> {
       parameter.stdin(stdin);
     }
 
+    // Show request information
+    println!("[Request info]");
+    println!("compiler = {:?}", parameter.compiler);
+    if let Some(ref options) = parameter.options {
+      println!("options = {:?}", options);
+    }
+    if let Some(ref option_raw) = parameter.compiler_option_raw {
+      println!("compiler_options = {:?}", option_raw.split("\n").collect::<Vec<_>>());
+    }
+    if let Some(ref option_raw) = parameter.runtime_option_raw {
+      println!("runtime_options = {:?}", option_raw.split("\n").collect::<Vec<_>>());
+    }
+    println!("");
+
     let run_url = format!("{}/api/compile.json", WANDBOX_URL);
 
-    println!("HTTP POST {}", run_url);
-    println!("{}", serde_json::to_string_pretty(&parameter)?);
-
     // Post compile request to Wandbox
+    if self.verbose {
+      println!("[HTTP session]");
+    }
     let client = build_http_client()?;
+    if self.verbose {
+      println!("HTTP POST {}", run_url);
+      println!("{}", serde_json::to_string_pretty(&parameter)?);
+    }
     let mut res = client.post(&run_url)
       .header(ContentType::json())
       .body(&serde_json::to_string(&parameter)?)
       .send()?;
-    println!("HTTP STATUS: {}", res.status);
+    if self.verbose {
+      println!("HTTP STATUS: {}", res.status);
+    }
 
     let mut buf = String::new();
     res.read_to_string(&mut buf)?;
-    println!("HTTP RESPONSE:");
-    println!("{}", buf);
-    println!();
+    if self.verbose {
+      println!("HTTP RESPONSE:");
+      println!("{}", buf);
+      println!();
+    }
 
     let response: wandbox::Response = serde_json::from_str(&buf)?;
 
     // Show compile response
-    println!("Status: {}", response.status);
     if let Some(ref message) = response.program_message {
-      println!("Program message:");
+      println!("[Program message]");
       println!("{}", message);
     } else {
-      println!("Compiler message:");
+      println!("[Compiler message]");
       println!("{}", response.compiler_message.as_ref().unwrap());
     }
+    println!("[Compler exited with status {}]", response.status);
 
     if let Some(url) = response.url {
-      println!("Permlink URL:");
+      println!("[Permlink URL]");
       println!("{}", url);
       if self.browse {
         open_browser(url)?;
@@ -271,14 +296,14 @@ impl<'a> PermlinkApp<'a> {
 
 pub enum App<'a> {
   List(ListApp<'a>),
-  Run(RunApp<'a>),
+  Compile(CompileApp<'a>),
   Permlink(PermlinkApp<'a>),
 }
 
 impl<'c> App<'c> {
   pub fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.subcommand(ListApp::make_app(clap::SubCommand::with_name("list")))
-      .subcommand(RunApp::make_app(clap::SubCommand::with_name("run")))
+      .subcommand(CompileApp::make_app(clap::SubCommand::with_name("compile")))
       .subcommand(PermlinkApp::make_app(clap::SubCommand::with_name("permlink")))
   }
 }
@@ -287,7 +312,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for App<'a> {
   fn from(m: &'b clap::ArgMatches<'a>) -> App<'a> {
     match m.subcommand() {
       ("list", Some(m)) => App::List(m.into()),
-      ("run", Some(m)) => App::Run(m.into()),
+      ("compile", Some(m)) => App::Compile(m.into()),
       ("permlink", Some(m)) => App::Permlink(m.into()),
       _ => unreachable!(),
     }
@@ -298,7 +323,7 @@ impl<'a> App<'a> {
   pub fn run(self) -> Result<i32, ::Error> {
     match self {
       App::List(a) => a.run(),
-      App::Run(a) => a.run(),
+      App::Compile(a) => a.run(),
       App::Permlink(a) => a.run(),
     }
   }
