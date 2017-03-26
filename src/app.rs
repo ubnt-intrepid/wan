@@ -225,32 +225,92 @@ impl<'a> CompileApp<'a> {
 
 pub struct PermlinkApp<'a> {
   link: &'a str,
+  dump: bool,
+  browse: bool,
 }
 
 impl<'c> PermlinkApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-    app.about("Get a result specified a given permanent link").arg_from_usage("<link> 'Link name'")
+    app.about("Get a result specified a given permanent link")
+      .arg_from_usage("<link>        'Link name'")
+      .arg_from_usage("-d, --dump    'Show Raw JSON'")
+      .arg_from_usage("-b, --browse  'Open browser'")
   }
 }
 
 impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for PermlinkApp<'a> {
   fn from(m: &'b clap::ArgMatches<'a>) -> PermlinkApp<'a> {
-    PermlinkApp { link: m.value_of("link").unwrap() }
+    PermlinkApp {
+      link: m.value_of("link").unwrap(),
+      dump: m.is_present("dump"),
+      browse: m.is_present("browse"),
+    }
   }
 }
 
 impl<'a> PermlinkApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
-    #[derive(Debug, Serialize, Deserialize)]
-    struct PermlinkResult {
-      parameter: wandbox::Parameter,
-      result: wandbox::Response,
-    }
     let config = config::Config::load()?;
+
     let wandbox = Wandbox::new(config.url);
-    let result: PermlinkResult = serde_json::from_str(&wandbox.get_permlink(self.link)?)?;
-    util::dump_to_json(&result)?;
+    let s = wandbox.get_permlink(self.link)?;
+    let result: PermlinkResult = serde_json::from_str(&s)?;
+
+    if self.dump {
+      println!("{}", s);
+    } else {
+      println!("{}", result);
+    }
+
+    if self.browse {
+      let url = wandbox.permlink_url(self.link);
+      open_browser(url)?;
+    }
+
     Ok(0)
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct PermlinkResult {
+  parameter: wandbox::Parameter,
+  result: wandbox::Response,
+}
+
+impl ::std::fmt::Display for PermlinkResult {
+  fn fmt(&self, w: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+    // Show request information
+    writeln!(w, "[Request info]")?;
+    writeln!(w, "compiler = {:?}", self.parameter.compiler)?;
+    if let Some(ref options) = self.parameter.options {
+      writeln!(w, "options = {:?}", options)?;
+    }
+    if let Some(ref option_raw) = self.parameter.compiler_option_raw {
+      writeln!(w,
+               "compiler_options = {:?}",
+               option_raw.split("\n").collect::<Vec<_>>())?;
+    }
+    if let Some(ref option_raw) = self.parameter.runtime_option_raw {
+      writeln!(w,
+               "runtime_options = {:?}",
+               option_raw.split("\n").collect::<Vec<_>>())?;
+    }
+    writeln!(w)?;
+
+    // Show compile response
+    if let Some(ref message) = self.result.program_message {
+      writeln!(w, "[Program message]")?;
+      writeln!(w, "{}", message)?;
+    } else {
+      writeln!(w, "[Compiler message]")?;
+      writeln!(w,
+               "{}",
+               self.result
+                 .compiler_message
+                 .as_ref()
+                 .unwrap())?;
+    }
+    writeln!(w, "[Program exited with status {}]", self.result.status)
   }
 }
 

@@ -85,6 +85,10 @@ impl Wandbox {
 
     Ok(buf)
   }
+
+  pub fn permlink_url(&self, link: &str) -> String {
+    format!("{}/permlink/{}", self.url, link)
+  }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
