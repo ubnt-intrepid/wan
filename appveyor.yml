@@ -60,6 +60,5 @@ deploy:
     appveyor_repo_tag: true
 
 cache:
-  - C:\Users\appveyor\.cargo
-  - C:\Users\appveyor\.rustup
+  - C:\Users\appveyor\.cargo\registry
   - target
