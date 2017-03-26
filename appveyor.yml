@@ -30,6 +30,7 @@ install:
   - curl -sSf -o rustup-init.exe https://win.rustup.rs/
   - rustup-init.exe -y --no-modify-path --default-toolchain=%TOOLCHAIN% --default-host=%TARGET%
   - set PATH=%USERPROFILE%\.cargo\bin;%PATH%
+  - rustup update
   - rustc -V
   - cargo -V
 
