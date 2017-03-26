@@ -1,0 +1,3 @@
+# Nim
+
+echo "Hello, Wandbox!"

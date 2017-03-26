@@ -1,4 +1,4 @@
-// D language
+// D
 
 import std.stdio; // writeln
 

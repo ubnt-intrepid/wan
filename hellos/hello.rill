@@ -1,0 +1,7 @@
+// Rill
+
+import std.stdio;
+
+def main() {
+  println("Hello, Wandbox!");
+}

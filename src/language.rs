@@ -14,6 +14,7 @@ fn make_languages() -> HashMap<&'static str, (&'static str, Vec<&'static str>)> 
   mappings.insert("C++", ("gcc-head", vec!["cpp,cxx,cc,hpp,hxx,hh"]));
   mappings.insert("CoffeeScript", ("coffeescript-head", vec!["coffee"]));
   mappings.insert("CPP", ("gcc-head-pp", vec![]));
+  mappings.insert("Crystal", ("crystal-head", vec!["cr"]));
   mappings.insert("D", ("ldc-head", vec!["d"]));
   mappings.insert("Elixir", ("elixir-head", vec!["ex", "exs"]));
   mappings.insert("Erlang", ("erlang-head", vec!["erl"]));
@@ -25,6 +26,7 @@ fn make_languages() -> HashMap<&'static str, (&'static str, Vec<&'static str>)> 
   mappings.insert("Lazy K", ("lazyk", vec!["lazy"]));
   mappings.insert("Lisp", ("clisp-2.49", vec!["lisp"]));
   mappings.insert("Lua", ("lua-5.3.4", vec!["lua"]));
+  mappings.insert("Nim", ("nim-head", vec!["nim"]));
   mappings.insert("OCaml", ("ocaml-head", vec!["ml"]));
   mappings.insert("Pascal", ("fpc-head", vec!["pas"]));
   mappings.insert("Perl", ("perl-head", vec!["pl"]));
