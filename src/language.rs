@@ -44,7 +44,5 @@ fn make_languages() -> HashMap<&'static str, (&'static str, Vec<&'static str>)> 
 }
 
 pub fn get_compiler_from_ext(ext: &str) -> Option<&'static str> {
-  LANGUAGES.iter()
-    .find(|&(_, val)| val.1.contains(&ext))
-    .map(|(_, val)| val.0)
+  LANGUAGES.iter().find(|&(_, val)| val.1.contains(&ext)).map(|(_, val)| val.0)
 }

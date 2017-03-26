@@ -95,7 +95,11 @@ pub struct Code {
 
 impl Code {
   pub fn new<P: AsRef<Path> + Copy>(path: P) -> Code {
-    let file = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
+    let file = path.as_ref()
+      .file_name()
+      .unwrap()
+      .to_string_lossy()
+      .into_owned();
 
     let mut f = ::std::fs::File::open(path).unwrap();
     use std::io::Read;
@@ -166,7 +170,10 @@ impl Parameter {
     if self.codes.is_none() {
       self.codes = Some(Vec::new());
     }
-    self.codes.as_mut().unwrap().extend(files.into_iter().map(|s| Code::new(s.as_ref())));
+    self.codes
+      .as_mut()
+      .unwrap()
+      .extend(files.into_iter().map(|s| Code::new(s.as_ref())));
     self
   }
 

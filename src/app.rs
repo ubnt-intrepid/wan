@@ -62,15 +62,10 @@ impl<'a> ListApp<'a> {
     let wandbox = Wandbox::new(config.url);
     let info_list = wandbox.get_compiler_info()?;
 
-    let info_list = info_list.into_iter()
-      .filter(move |info| {
-        ptn_name.as_ref()
-          .map(|m| m.is_match(&info.name))
-          .unwrap_or(true) &&
-        ptn_lang.as_ref()
-          .map(|m| m.is_match(&format!("{}", info.language)))
-          .unwrap_or(true)
-      });
+    let info_list = info_list.into_iter().filter(move |info| {
+      ptn_name.as_ref().map(|m| m.is_match(&info.name)).unwrap_or(true) &&
+      ptn_lang.as_ref().map(|m| m.is_match(&format!("{}", info.language))).unwrap_or(true)
+    });
 
     if self.name_only {
       for info in info_list {
@@ -100,8 +95,7 @@ pub struct CompileApp<'a> {
 
 impl<'c> CompileApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-    app.about("Post a code to wandbox and get a result")
-      .args_from_usage(r#"
+    app.about("Post a code to wandbox and get a result").args_from_usage(r#"
         <filename>                      'Target filename'
         [files...]                      'Supplemental files'
         --compiler=[compiler]           'Compiler name'
@@ -191,7 +185,7 @@ impl<'a> CompileApp<'a> {
       println!("[Compiler message]");
       println!("{}", response.compiler_message.as_ref().unwrap());
     }
-    println!("[Compler exited with status {}]", response.status);
+    println!("[Program exited with status {}]", response.status);
 
     if let Some(url) = response.url {
       println!("[Permlink URL]");
@@ -207,8 +201,7 @@ impl<'a> CompileApp<'a> {
   fn read_code(&self) -> ::Result<String> {
     let mut code = String::new();
     if self.filename != "-" {
-      File::open(self.filename)?
-        .read_to_string(&mut code)?;
+      File::open(self.filename)?.read_to_string(&mut code)?;
     } else {
       io::stdin().read_to_string(&mut code)?;
     }
@@ -218,13 +211,13 @@ impl<'a> CompileApp<'a> {
   fn guess_compiler(&self) -> Option<String> {
     self.compiler
       .or_else(|| if self.filename != "-" {
-        PathBuf::from(self.filename)
-          .extension()
-          .map(|ext| ext.to_string_lossy())
-          .and_then(|ext| language::get_compiler_from_ext(ext.borrow()))
-      } else {
-        None
-      })
+                 PathBuf::from(self.filename)
+                   .extension()
+                   .map(|ext| ext.to_string_lossy())
+                   .and_then(|ext| language::get_compiler_from_ext(ext.borrow()))
+               } else {
+                 None
+               })
       .map(ToOwned::to_owned)
   }
 }
@@ -236,8 +229,7 @@ pub struct PermlinkApp<'a> {
 
 impl<'c> PermlinkApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-    app.about("Get a result specified a given permanent link")
-      .arg_from_usage("<link> 'Link name'")
+    app.about("Get a result specified a given permanent link").arg_from_usage("<link> 'Link name'")
   }
 }
 
@@ -301,23 +293,20 @@ impl<'a> App<'a> {
 #[cfg(target_os = "windows")]
 fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
   let url = Url::parse(s.as_ref())?;
-  ::std::process::Command::new("explorer").arg(url.as_str())
-    .status()?;
+  ::std::process::Command::new("explorer").arg(url.as_str()).status()?;
   Ok(())
 }
 
 #[cfg(target_os = "macos")]
 fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
   let url = Url::parse(s.as_ref())?;
-  ::std::process::Command::new("open").arg(url.as_str())
-    .status()?;
+  ::std::process::Command::new("open").arg(url.as_str()).status()?;
   Ok(())
 }
 
 #[cfg(target_os = "linux")]
 fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
   let url = Url::parse(s.as_ref())?;
-  ::std::process::Command::new("xdg-open").arg(url.as_str())
-    .status()?;
+  ::std::process::Command::new("xdg-open").arg(url.as_str()).status()?;
   Ok(())
 }
