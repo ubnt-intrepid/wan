@@ -37,9 +37,9 @@ impl Wandbox {
     }
 
     let mut res = client.post(&run_url)
-      .header(hyper::header::ContentType::json())
-      .body(&serde_json::to_string(&param)?)
-      .send()?;
+                        .header(hyper::header::ContentType::json())
+                        .body(&serde_json::to_string(&param)?)
+                        .send()?;
 
     if verbose {
       println!("HTTP STATUS: {}", res.status);
@@ -57,7 +57,7 @@ impl Wandbox {
     Ok(response)
   }
 
-  pub fn get_compiler_info(&self) -> ::Result<Vec<CompilerInfo>> {
+  pub fn get_compiler_info_raw(&self) -> ::Result<Box<Read>> {
     let list_url = format!("{}/api/list.json", self.url);
 
     // create HTTP client.
@@ -66,6 +66,11 @@ impl Wandbox {
     let client = hyper::Client::with_connector(connector);
 
     let res = client.get(&list_url).send()?;
+    Ok(Box::new(res))
+  }
+
+  pub fn get_compiler_info(&self) -> ::Result<Vec<CompilerInfo>> {
+    let res = self.get_compiler_info_raw()?;
     let res = serde_json::from_reader(res)?;
     Ok(res)
   }
@@ -100,10 +105,10 @@ pub struct Code {
 impl Code {
   pub fn new<P: AsRef<Path> + Copy>(path: P) -> Code {
     let file = path.as_ref()
-      .file_name()
-      .unwrap()
-      .to_string_lossy()
-      .into_owned();
+                   .file_name()
+                   .unwrap()
+                   .to_string_lossy()
+                   .into_owned();
 
     let mut f = ::std::fs::File::open(path).unwrap();
     use std::io::Read;
@@ -175,9 +180,9 @@ impl Parameter {
       self.codes = Some(Vec::new());
     }
     self.codes
-      .as_mut()
-      .unwrap()
-      .extend(files.into_iter().map(|s| Code::new(s.as_ref())));
+        .as_mut()
+        .unwrap()
+        .extend(files.into_iter().map(|s| Code::new(s.as_ref())));
     self
   }
 
@@ -291,8 +296,7 @@ fn test_compiler_switch() {
     "display-flags":"-I/usr/local/sprout",
     "display-name":"Sprout"
   }"#;
-  let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src)
-    .unwrap();
+  let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src).unwrap();
 
   let dst = dst.into_left().expect("invalid type");
   assert_eq!(dst.default, true);
@@ -315,8 +319,7 @@ fn test_compiler_switch_multi() {
       "display-name":"Boost 1.47.0"
     }]
   }"#;
-  let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src)
-    .unwrap();
+  let dst = serde_json::from_str::<Either<CompilerSwitch, CompilerSwitchMultiOptions>>(src).unwrap();
   let dst = dst.into_right().unwrap();
 
   assert_eq!(dst.default, "boost-1.55");

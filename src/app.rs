@@ -1,12 +1,12 @@
 use std::borrow::Borrow;
 use std::fs::File;
 use std::io::{self, Read};
+use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use clap;
 use serde_json;
 use shlex;
-use regex::Regex;
 use url::Url;
 
 use config;
@@ -15,26 +15,22 @@ use wandbox::{self, Wandbox};
 use util;
 
 pub struct ListApp<'a> {
-  name_only: bool,
-  name: Option<&'a str>,
-  lang: Option<&'a str>,
+  dump: bool,
+  marker: PhantomData<&'a usize>,
 }
 
 impl<'c> ListApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("List compiler information")
-      .arg_from_usage("--name-only      'Display names only'")
-      .arg_from_usage("--name=[name]    'Filter by name with Regex pattern'")
-      .arg_from_usage("--lang=[lang]    'Filter by language with Regex pattern'")
+       .arg_from_usage("-d, --dump  'Dump to raw JSON'")
   }
 }
 
 impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp<'a> {
   fn from(m: &'b clap::ArgMatches<'a>) -> ListApp<'a> {
     ListApp {
-      name_only: m.is_present("name-only"),
-      name: m.value_of("name"),
-      lang: m.value_of("lang"),
+      dump: m.is_present("dump"),
+      marker: PhantomData,
     }
   }
 }
@@ -42,37 +38,53 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp<'a> {
 impl<'a> ListApp<'a> {
   fn run(self) -> Result<i32, ::Error> {
     let config = config::Config::load()?;
+    let cli = Wandbox::new(config.url);
 
-    let ptn_name = match self.name {
-      Some(name) => Some(Regex::new(&name)?),
-      None => None,
-    };
-
-    let ptn_lang = match self.lang {
-      Some(lang) => {
-        if lang == "C++" {
-          Some(Regex::new(r"C\+\+")?)
-        } else {
-          Some(Regex::new(&lang)?)
-        }
-      }
-      None => None,
-    };
-
-    let wandbox = Wandbox::new(config.url);
-    let info_list = wandbox.get_compiler_info()?;
-
-    let info_list = info_list.into_iter().filter(move |info| {
-      ptn_name.as_ref().map(|m| m.is_match(&info.name)).unwrap_or(true) &&
-      ptn_lang.as_ref().map(|m| m.is_match(&format!("{}", info.language))).unwrap_or(true)
-    });
-
-    if self.name_only {
-      for info in info_list {
-        println!("{}", info.name);
-      }
+    if self.dump {
+      let mut res = cli.get_compiler_info_raw()?;
+      io::copy(&mut res, &mut io::stdout())?;
     } else {
-      util::dump_to_json(&info_list.collect::<Vec<_>>())?;
+      use std::collections::BTreeMap;
+      use wandbox::CompilerInfo;
+      use util::Either;
+
+      let info = cli.get_compiler_info()?;
+
+      let mut langs = BTreeMap::new();
+      for compiler in &info {
+        let compiler: &CompilerInfo = &compiler;
+        let language = compiler.language.clone();
+        if !langs.contains_key(&language) {
+          langs.insert(language.clone(), Vec::new());
+        }
+        langs.get_mut(&language).unwrap().push(compiler.clone());
+      }
+
+      for (lang, compilers) in langs {
+        println!("{:?}:", lang);
+        for compiler in compilers {
+          println!("- name: {}", compiler.name);
+          if compiler.switches.len() > 0 {
+            println!("  switches:");
+            for switch in &compiler.switches {
+              match *switch {
+                Either::Left(ref switch) => {
+                  println!("  - name: {:?}", switch.name);
+                  println!("    default: {:?}", switch.default);
+                }
+                Either::Right(ref switch) => {
+                  println!("  - default: {:?}", switch.default);
+                  println!("    options:");
+                  for option in &switch.options {
+                    println!("    - name: {:?}", option.name);
+                  }
+                }
+              }
+            }
+          }
+        }
+        println!();
+      }
     }
 
     Ok(0)
@@ -95,7 +107,8 @@ pub struct CompileApp<'a> {
 
 impl<'c> CompileApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-    app.about("Post a code to wandbox and get a result").args_from_usage(r#"
+    app.about("Post a code to wandbox and get a result")
+       .args_from_usage(r#"
         <filename>                      'Target filename'
         [files...]                      'Supplemental files'
         --compiler=[compiler]           'Compiler name'
@@ -210,15 +223,15 @@ impl<'a> CompileApp<'a> {
 
   fn guess_compiler(&self) -> Option<String> {
     self.compiler
-      .or_else(|| if self.filename != "-" {
-                 PathBuf::from(self.filename)
-                   .extension()
-                   .map(|ext| ext.to_string_lossy())
-                   .and_then(|ext| language::get_compiler_from_ext(ext.borrow()))
-               } else {
-                 None
-               })
-      .map(ToOwned::to_owned)
+        .or_else(|| if self.filename != "-" {
+                   PathBuf::from(self.filename)
+                     .extension()
+                     .map(|ext| ext.to_string_lossy())
+                     .and_then(|ext| language::get_compiler_from_ext(ext.borrow()))
+                 } else {
+                   None
+                 })
+        .map(ToOwned::to_owned)
   }
 }
 
@@ -232,9 +245,9 @@ pub struct PermlinkApp<'a> {
 impl<'c> PermlinkApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("Get a result specified a given permanent link")
-      .arg_from_usage("<link>        'Link name'")
-      .arg_from_usage("-d, --dump    'Show Raw JSON'")
-      .arg_from_usage("-b, --browse  'Open browser'")
+       .arg_from_usage("<link>        'Link name'")
+       .arg_from_usage("-d, --dump    'Show Raw JSON'")
+       .arg_from_usage("-b, --browse  'Open browser'")
   }
 }
 
@@ -303,12 +316,7 @@ impl ::std::fmt::Display for PermlinkResult {
       writeln!(w, "{}", message)?;
     } else {
       writeln!(w, "[Compiler message]")?;
-      writeln!(w,
-               "{}",
-               self.result
-                 .compiler_message
-                 .as_ref()
-                 .unwrap())?;
+      writeln!(w, "{}", self.result.compiler_message.as_ref().unwrap())?;
     }
     writeln!(w, "[Program exited with status {}]", self.result.status)
   }
@@ -324,8 +332,8 @@ pub enum App<'a> {
 impl<'c> App<'c> {
   pub fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.subcommand(ListApp::make_app(clap::SubCommand::with_name("list")))
-      .subcommand(CompileApp::make_app(clap::SubCommand::with_name("compile")))
-      .subcommand(PermlinkApp::make_app(clap::SubCommand::with_name("permlink")))
+       .subcommand(CompileApp::make_app(clap::SubCommand::with_name("compile")))
+       .subcommand(PermlinkApp::make_app(clap::SubCommand::with_name("permlink")))
   }
 }
 
@@ -353,20 +361,23 @@ impl<'a> App<'a> {
 #[cfg(target_os = "windows")]
 fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
   let url = Url::parse(s.as_ref())?;
-  ::std::process::Command::new("explorer").arg(url.as_str()).status()?;
+  ::std::process::Command::new("explorer").arg(url.as_str())
+    .status()?;
   Ok(())
 }
 
 #[cfg(target_os = "macos")]
 fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
   let url = Url::parse(s.as_ref())?;
-  ::std::process::Command::new("open").arg(url.as_str()).status()?;
+  ::std::process::Command::new("open").arg(url.as_str())
+    .status()?;
   Ok(())
 }
 
 #[cfg(target_os = "linux")]
 fn open_browser<S: AsRef<str>>(s: S) -> ::Result<()> {
   let url = Url::parse(s.as_ref())?;
-  ::std::process::Command::new("xdg-open").arg(url.as_str()).status()?;
+  ::std::process::Command::new("xdg-open").arg(url.as_str())
+    .status()?;
   Ok(())
 }

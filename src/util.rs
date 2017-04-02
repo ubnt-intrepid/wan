@@ -32,7 +32,8 @@ pub fn str_join<I, S>(iter: I, join: &str) -> String
   where I: IntoIterator<Item = S>,
         S: AsRef<str>
 {
-  iter.into_iter().fold(String::new(), |mut acc, s| {
+  iter.into_iter()
+      .fold(String::new(), |mut acc, s| {
     if !acc.is_empty() {
       acc.push_str(join);
     }

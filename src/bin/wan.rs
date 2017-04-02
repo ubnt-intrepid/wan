@@ -12,7 +12,7 @@ fn main() {
   let ref matches = App::make_app(app_from_crate!()
                                     .setting(clap::AppSettings::VersionlessSubcommands)
                                     .setting(clap::AppSettings::SubcommandRequiredElseHelp))
-      .get_matches();
+    .get_matches();
   let app: App = matches.into();
 
   match app.run() {

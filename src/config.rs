@@ -19,7 +19,8 @@ impl Config {
     if !::std::path::PathBuf::from(path.borrow() as &str).is_file() {
       return Ok(Default::default());
     }
-    let reader = ::std::fs::OpenOptions::new().read(true).open(path.borrow() as &str)?;
+    let reader = ::std::fs::OpenOptions::new().read(true)
+      .open(path.borrow() as &str)?;
     let config = serde_json::from_reader(reader)?;
     Ok(config)
   }
