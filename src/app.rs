@@ -12,17 +12,18 @@ use url::Url;
 use config;
 use language;
 use wandbox::{self, Wandbox};
-use util;
 
 pub struct ListApp<'a> {
   dump: bool,
+  show_switches: bool,
   marker: PhantomData<&'a usize>,
 }
 
 impl<'c> ListApp<'c> {
   fn make_app<'a, 'b: 'a>(app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
     app.about("List compiler information")
-       .arg_from_usage("-d, --dump  'Dump to raw JSON'")
+       .arg_from_usage("-d, --dump          'Dump to raw JSON'")
+       .arg_from_usage("-s, --show-switches 'Show compiler switches'")
   }
 }
 
@@ -30,6 +31,7 @@ impl<'a, 'b: 'a> From<&'b clap::ArgMatches<'a>> for ListApp<'a> {
   fn from(m: &'b clap::ArgMatches<'a>) -> ListApp<'a> {
     ListApp {
       dump: m.is_present("dump"),
+      show_switches: m.is_present("show-switches"),
       marker: PhantomData,
     }
   }
@@ -61,22 +63,28 @@ impl<'a> ListApp<'a> {
       }
 
       for (lang, compilers) in langs {
-        println!("{:?}:", lang);
+        println!("[{}]", lang);
         for compiler in compilers {
-          println!("- name: {}", compiler.name);
-          if compiler.switches.len() > 0 {
-            println!("  switches:");
+          println!("- {}", compiler.name);
+          if self.show_switches && compiler.switches.len() > 0 {
+            println!("  [Switches]");
             for switch in &compiler.switches {
               match *switch {
                 Either::Left(ref switch) => {
-                  println!("  - name: {:?}", switch.name);
-                  println!("    default: {:?}", switch.default);
+                  if switch.default {
+                    println!("  - {} (default)", switch.name);
+                  } else {
+                    println!("  - {}", switch.name);
+                  }
                 }
                 Either::Right(ref switch) => {
-                  println!("  - default: {:?}", switch.default);
-                  println!("    options:");
+                  println!("  - [Options]");
                   for option in &switch.options {
-                    println!("    - name: {:?}", option.name);
+                    if option.name == switch.default {
+                      println!("    - {} (default)", option.name);
+                    } else {
+                      println!("    - {}", option.name);
+                    }
                   }
                 }
               }
