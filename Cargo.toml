@@ -1,7 +1,10 @@
 [package]
 name = "wan"
 description = "Commandline interface of Wandbox"
-version = "0.0.2-dev"
+repository = "https://github.com/ubnt-intrepid/wan.git"
+homepage = "https://github.com/ubnt-intrepid/wan"
+version = "0.0.2"
+license = "MIT"
 authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
 
 [dependencies]
@@ -17,5 +20,5 @@ serde_json = "0.9.9"
 shlex = "0.1.1"
 regex = "0.2.1"
 lazy_static = "0.2.4"
-url = "*"
-shellexpand = "*"
+url = "1.4.0"
+shellexpand = "1.0.0"
