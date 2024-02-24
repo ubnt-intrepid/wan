@@ -1,0 +1,100 @@
+dist: trusty
+language: rust
+sudo: required
+services: docker
+
+branches:
+  only:
+    - master
+    - /^v[0-9]/
+env:
+  global:
+    - CRATE_NAME=wan
+    # TODO: embed encrypted API key to access crates.io
+    # - CRATES_IO_API_KEY=...
+
+matrix:
+  include:
+    # Linux (glibc)
+    # - env: TARGET=i686-unknown-linux-gnu
+    #   rust: stable
+    # - env: TARGET=x86_64-unknown-linux-gnu
+    #   rust: stable
+
+    # Linux (musl libc)
+    - env: TARGET=x86_64-unknown-linux-musl
+      rust: stable
+
+    # Linux (AArch64)
+    # - env: TARGET=aarch64-unknown-linux-gnu SKIP_TEST=1
+    #   rust: stable
+
+    # macOS
+    # - env: TARGET=i686-apple-darwin
+    #   rust: stable
+    #   os: osx
+    - env: TARGET=x86_64-apple-darwin
+      rust: stable
+      os: osx
+
+    # FreeBSD
+    # - env: TARGET=i686-unknown-freebsd SKIP_TEST=1
+    #   rust: stable
+    # - env: TARGET=x86_64-unknown-freebsd SKIP_TEST=1
+    #   rust: stable
+
+    # Android
+    # - env: TARGET=i686-linux-android ARCH=x86 API=23 SKIP_TEST=1
+    #   rust: stable
+    # - env: TARGET=arm-linux-androideabi ARCH=arm API=24 SKIP_TEST=1
+    #   rust: stable
+
+    # beta/nightly channel
+    # - env: TARGET=x86_64-unknown-linux-gnu
+    #   rust: beta
+    - env: TARGET=x86_64-unknown-linux-gnu
+      rust: nightly
+
+  allow_failures:
+    - rust: beta
+    - rust: nightly
+
+install:
+  - ./ci/install.sh "$TARGET" "$TRAVIS_RUST_VERSION"
+  - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then source $HOME/.cargo/env; fi
+
+script:
+  - ./ci/build.sh "$SKIP_TEST"
+
+before_deploy:
+  - export PKGNAME="${CRATE_NAME}-${TRAVIS_TAG}-${TARGET}"
+  - ./ci/deploy.sh "$PKGNAME"
+
+deploy:
+  - provider: releases
+    api_key:
+      secure: eOcVBpd1XyxDOzFz+mU0ddO8b2GwxqqQjHYbLT7dsnnM6y4hxBxgsddzVeaDMn78Zre2p4vpi6ykTgOdZUTGkRlBTpf14+Zkg/+Kgtif8iCLdwR9Or/v7QsI8HqtPvvBmf17yMD5PYlBURWLmo7Pd0zIj4Gr2X5DMHOjpHwMc5fGBreYCZ2kClqFe26PYhXbVkLub6sXkBZ5i7SCfDK5tDhln/0KcEItpThzTcE7X2vJj4y3bexNeFe6F7pRCCiRcpTOypzS/7Wb0Bq0kyUth0uBA34RXrExneVWg6NQDmRyj2ZLT1y0pwFyi6+uYw/YIDdWJ/obn3hDTyTLvRFNFAkW8y/Qj9T/+wz8VfC1uOMHfGWarpQYVghKP+n3o6wK5plRXnThzAORKxFUbb8Lw4T89MZOx1XcCQF7Cyn+qI0nJqqNGE50f/UZlYnZYGUm443vMN5waCSHSA5sRSqzgu86VsIcfIU02Ibl1Pl4WdhE4TepqH2GLDH1Sxjkmns46RfHC4JQwcS0c1ao+/+ozrsOwCD7AKm/BJRKmsYWsA2jq7B3wwcs4WcKmThCI9D38tUe7+AkZ1krsXlnNVwyxe54+HIL9HgDJqPLzOTlCNeshrWWL4GX9svMHcPs7PGHqQraqeOrbrJ9cFT4Aj+r4JjqeFqzN0kxrOxPzJmXfXA=
+    file_glob: true
+    file: "${PKGNAME}.tar.gz"
+    overwrite: true
+    skip_cleanup: true
+    on:
+      repo: ubnt-intrepid/wan
+      tags: true
+      condition: $TRAVIS_RUST_VERSION = stable
+
+  - provider: script
+    script: ./ci/publish.sh "$CRATES_IO_API_KEY"
+    on:
+      tags: true
+      condition: $TRAVIS_RUST_VERSION = stable
+      condition: $TARGET = x86_64-unknown-linux-gnu
+
+notifications:
+  email:
+    on_success: never
+    on_failure: change
+
+cache: cargo
+before_cache:
+  - chmod -R a+r $HOME/.cargo

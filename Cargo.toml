@@ -1,0 +1,24 @@
+[package]
+name = "wan"
+description = "Commandline interface of Wandbox"
+repository = "https://github.com/ubnt-intrepid/wan.git"
+homepage = "https://github.com/ubnt-intrepid/wan"
+version = "0.0.2"
+license = "MIT"
+authors = ["Yusuke Sasaki <yusuke.sasaki.nuem@gmail.com>"]
+
+[dependencies]
+clap = "2.20.5"
+env_logger = "0.4.2"
+error-chain = "0.10.0"
+hyper = "0.10.5"
+hyper-native-tls = "0.2.2"
+log = "0.3.7"
+serde = "0.9.11"
+serde_derive = "0.9.11"
+serde_json = "0.9.9"
+shlex = "0.1.1"
+regex = "0.2.1"
+lazy_static = "0.2.4"
+url = "1.4.0"
+shellexpand = "1.0.0"
